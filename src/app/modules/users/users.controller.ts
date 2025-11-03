@@ -3,7 +3,7 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserFilter } from 'src/app/shared/utils/filter-utils';
+import { FilterUserDto } from './dto/filter-user.dto';
 import { UserRole } from 'src/app/entities/user.entity';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -25,15 +25,8 @@ export class UsersController {
 
   @Get()
   @Roles(UserRole.ADMIN)
-  async findAll(@Query() query: any) {
-    const filters: UserFilter = {
-      page: query.page ? Number(query.page) : 1,
-      limit: query.limit ? Number(query.limit) : 10,
-      fullName: query.fullName,
-      email: query.email,
-      role: query.role,
-    };
-    const result = await this.usersService.findAll(filters);
+  async findAll(@Query() filterDto: FilterUserDto) {
+    const result = await this.usersService.findAll(filterDto);
 
     return {
       message: 'Courses retrieved successfully',

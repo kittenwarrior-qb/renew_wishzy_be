@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
+import { FilterCourseDto } from './dto/filter-course.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Course } from 'src/app/entities/course.entity';
 import { Repository } from 'typeorm';
-import { CourseFilter } from 'src/app/shared/utils/filter-utils';
 import { PaginationResponse } from 'src/app/shared/utils/response-utils';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class CoursesService {
     return await this.courseRepository.save(course);
   }
 
-  async getAllCourseForUser(filter: CourseFilter): Promise<PaginationResponse<Course>> {
+  async getAllCourseForUser(filter: FilterCourseDto): Promise<PaginationResponse<Course>> {
     const {
       page,
       limit,

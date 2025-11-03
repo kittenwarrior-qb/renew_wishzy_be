@@ -1,10 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
+import { FilterDocumentDto } from './dto/filter-document.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Document, DocumentEntityType } from 'src/app/entities/document.entity';
 import { Repository } from 'typeorm';
-import { DocumentFilter } from 'src/app/shared/utils/filter-utils';
 import { PaginationResponse } from 'src/app/shared/utils/response-utils';
 
 @Injectable()
@@ -29,7 +29,7 @@ export class DocumentsService {
     return document;
   }
 
-  async findAll(filters: DocumentFilter): Promise<PaginationResponse<Document>> {
+  async findAll(filters: FilterDocumentDto): Promise<PaginationResponse<Document>> {
     const { page, limit, name, entityId, entityType, createdBy } = filters;
     const query = this.documentRepository.createQueryBuilder('document');
     if (name) {

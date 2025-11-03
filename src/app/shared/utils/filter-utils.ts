@@ -1,54 +1,61 @@
-import { CourseLevel } from 'src/app/entities/enums/course.enum';
-import { UserRole } from 'src/app/entities/user.entity';
+// import { CourseLevel } from 'src/app/entities/enums/course.enum';
+// import { UserRole } from 'src/app/entities/user.entity';
 
-export interface CategoryFilter {
-  page?: number;
-  limit?: number;
-  name?: string;
-  parentId?: string;
-  isSubCategory?: boolean;
-}
+// export interface CategoryFilter {
+//   page?: number;
+//   limit?: number;
+//   name?: string;
+//   parentId?: string;
+//   isSubCategory?: boolean;
+// }
 
-export interface CourseFilter {
-  page?: number;
-  limit?: number;
-  name?: string;
-  categoryId?: string;
-  courseLevel?: CourseLevel;
-  createdBy?: string;
-  rating?: number;
-  minPrice?: number;
-  maxPrice?: number;
-  status?: string;
-}
+// export interface CourseFilter {
+//   page?: number;
+//   limit?: number;
+//   name?: string;
+//   categoryId?: string;
+//   courseLevel?: CourseLevel;
+//   createdBy?: string;
+//   rating?: number;
+//   minPrice?: number;
+//   maxPrice?: number;
+//   status?: string;
+// }
 
-export interface DocumentFilter {
-  page?: number;
-  limit?: number;
-  name?: string;
-  entityId?: string;
-  entityType?: string;
-  createdBy?: string;
-}
+// export interface DocumentFilter {
+//   page?: number;
+//   limit?: number;
+//   name?: string;
+//   entityId?: string;
+//   entityType?: string;
+//   createdBy?: string;
+// }
 
-export interface VoucherFilter {
-  page?: number;
-  limit?: number;
-  name?: string;
-  code?: string;
-  discountType?: string;
-  applyScope?: string;
-  categoryId?: string;
-  courseId?: string;
-  isActive?: boolean;
-  startDate?: Date;
-  endDate?: Date;
-}
+// export interface VoucherFilter {
+//   page?: number;
+//   limit?: number;
+//   name?: string;
+//   code?: string;
+//   discountType?: string;
+//   applyScope?: string;
+//   categoryId?: string;
+//   courseId?: string;
+//   isActive?: boolean;
+//   startDate?: Date;
+//   endDate?: Date;
+// }
 
-export interface UserFilter {
-  page?: number;
-  limit?: number;
-  fullName?: string;
-  email?: string;
-  role?: UserRole;
-}
+// export interface UserFilter {
+//   page?: number;
+//   limit?: number;
+//   fullName?: string;
+//   email?: string;
+//   role?: UserRole;
+// }
+
+// export interface OrderFilter {
+//   page?: number;
+//   limit?: number;
+//   courseId?: string;
+//   voucherId?: string;
+// }

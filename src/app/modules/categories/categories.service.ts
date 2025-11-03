@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { FilterCategoryDto } from './dto/filter-category.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from 'src/app/entities/category.entity';
-import { CategoryFilter } from 'src/app/shared/utils/filter-utils';
 import { PaginationResponse } from 'src/app/shared/utils/response-utils';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
@@ -20,7 +20,7 @@ export class CategoriesService {
     return result;
   }
 
-  async findAll(filter: CategoryFilter): Promise<PaginationResponse<Category>> {
+  async findAll(filter: FilterCategoryDto): Promise<PaginationResponse<Category>> {
     const { page = 1, limit = 10, name, parentId, isSubCategory } = filter;
 
     const queryBuilder = this.categoryRepository.createQueryBuilder('category');

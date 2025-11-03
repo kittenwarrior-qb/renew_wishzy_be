@@ -40,4 +40,10 @@ export default () => ({
 
   // Frontend URL
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3001',
+
+  // VNPay settings
+  VNP_TMNCODE: process.env.VNP_TMNCODE,
+  VNP_SECRET: process.env.VNP_SECRET,
+  VNP_HOST: process.env.VNP_HOST,
+  VNP_RETURN_URL: process.env.VNP_RETURN_URL,
 });

@@ -12,6 +12,7 @@ import {
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
+import { FilterDocumentDto } from './dto/filter-document.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from 'src/app/entities/user.entity';
@@ -36,24 +37,8 @@ export class DocumentsController {
   }
 
   @Get()
-  async findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('name') name?: string,
-    @Query('entityId') entityId?: string,
-    @Query('entityType') entityType?: string,
-    @Query('createdBy') createdBy?: string,
-  ) {
-    const filters = {
-      page: page ? Number(page) : 1,
-      limit: limit ? Number(limit) : 10,
-      name,
-      entityId,
-      entityType,
-      createdBy,
-    };
-
-    const results = await this.documentsService.findAll(filters);
+  async findAll(@Query() filterDto: FilterDocumentDto) {
+    const results = await this.documentsService.findAll(filterDto);
 
     return {
       message: 'Documents retrieved successfully',
