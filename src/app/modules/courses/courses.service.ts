@@ -53,7 +53,7 @@ export class CoursesService {
       queryBuilder.andWhere('course.rating = :rating', { rating });
     }
     if (courseLevel) {
-      queryBuilder.andWhere('course.courseLevel = :courseLevel', { courseLevel });
+      queryBuilder.andWhere('course.level = :courseLevel', { courseLevel });
     }
     if (minPrice) {
       queryBuilder.andWhere('course.price >= :minPrice', { minPrice });
@@ -63,10 +63,6 @@ export class CoursesService {
     }
     if (status) {
       queryBuilder.andWhere('course.status = :status', { status });
-    }
-
-    if (courseLevel) {
-      queryBuilder.andWhere('course.courseLevel = :courseLevel', { courseLevel });
     }
 
     queryBuilder.skip((page - 1) * limit);

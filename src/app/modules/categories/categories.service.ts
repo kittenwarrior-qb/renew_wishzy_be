@@ -24,18 +24,20 @@ export class CategoriesService {
     const { page = 1, limit = 10, name, parentId, isSubCategory } = filter;
 
     const queryBuilder = this.categoryRepository.createQueryBuilder('category');
+
     if (name) {
       queryBuilder.andWhere('category.name ILIKE :name', { name: `%${name}%` });
     }
 
     if (parentId) {
-      queryBuilder.andWhere('category.parent_id = :parentId', { parentId: filter.parentId });
+      queryBuilder.andWhere('category.parent_id = :parentId', { parentId });
     }
 
-    if (isSubCategory !== undefined) {
+    // Filter by subcategory status
+    if (isSubCategory !== undefined && isSubCategory !== null) {
       if (isSubCategory === true) {
         queryBuilder.andWhere('category.parent_id IS NOT NULL');
-      } else {
+      } else if (isSubCategory === false) {
         queryBuilder.andWhere('category.parent_id IS NULL');
       }
     }
