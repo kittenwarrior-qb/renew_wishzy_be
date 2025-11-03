@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserFilter } from 'src/app/shared/utils/filter-utils';
+import { FilterUserDto } from './dto/filter-user.dto';
 import { PaginationResponse } from 'src/app/shared/utils/response-utils';
 import { User } from 'src/app/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -19,7 +19,7 @@ export class UsersService {
     return await this.usersRepository.save(user);
   }
 
-  async findAll(filters: UserFilter): Promise<PaginationResponse<User>> {
+  async findAll(filters: FilterUserDto): Promise<PaginationResponse<User>> {
     const { page, limit, fullName, email, role } = filters;
     const queryBuilder = this.usersRepository.createQueryBuilder('user');
 

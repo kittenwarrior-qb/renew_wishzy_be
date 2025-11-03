@@ -2,10 +2,10 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestj
 import { VouchersService } from './vouchers.service';
 import { CreateVoucherDto } from './dto/create-voucher.dto';
 import { UpdateVoucherDto } from './dto/update-voucher.dto';
+import { FilterVoucherDto } from './dto/filter-voucher.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from 'src/app/entities/user.entity';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { VoucherFilter } from 'src/app/shared/utils/filter-utils';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('vouchers')
@@ -25,21 +25,8 @@ export class VouchersController {
   }
 
   @Get()
-  async findAll(@Query() query: any) {
-    const filter: VoucherFilter = {
-      page: query.page ? Number(query.page) : 1,
-      limit: query.limit ? Number(query.limit) : 10,
-      name: query.name,
-      code: query.code,
-      discountType: query.discountType,
-      applyScope: query.applyScope,
-      categoryId: query.categoryId,
-      courseId: query.courseId,
-      isActive: query.isActive === 'true',
-      startDate: query.startDate ? new Date(query.startDate) : undefined,
-      endDate: query.endDate ? new Date(query.endDate) : undefined,
-    };
-    const results = await this.vouchersService.findAll(filter);
+  async findAll(@Query() filterDto: FilterVoucherDto) {
+    const results = await this.vouchersService.findAll(filterDto);
 
     return {
       message: 'Vouchers retrieved successfully',

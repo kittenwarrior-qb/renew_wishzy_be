@@ -1,12 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateVoucherDto } from './dto/create-voucher.dto';
 import { UpdateVoucherDto } from './dto/update-voucher.dto';
+import { FilterVoucherDto } from './dto/filter-voucher.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ApplyScope, Voucher } from 'src/app/entities/vouchers.entity';
 import { Repository } from 'typeorm';
 import { CategoriesService } from '../categories/categories.service';
 import { CoursesService } from '../courses/courses.service';
-import { VoucherFilter } from 'src/app/shared/utils/filter-utils';
 import { PaginationResponse } from 'src/app/shared/utils/response-utils';
 
 @Injectable()
@@ -34,7 +34,7 @@ export class VouchersService {
     return await this.voucherRepository.save(voucher);
   }
 
-  async findAll(filter: VoucherFilter): Promise<PaginationResponse<Voucher>> {
+  async findAll(filter: FilterVoucherDto): Promise<PaginationResponse<Voucher>> {
     const {
       page = 1,
       limit = 10,
@@ -80,11 +80,11 @@ export class VouchersService {
     }
 
     if (startDate) {
-      queryBuilder.andWhere('voucher.start_date >= :startDate', { startDate });
+      queryBuilder.andWhere('voucher.start_date >= :startDate', { startDate: new Date(startDate) });
     }
 
     if (endDate) {
-      queryBuilder.andWhere('voucher.end_date <= :endDate', { endDate });
+      queryBuilder.andWhere('voucher.end_date <= :endDate', { endDate: new Date(endDate) });
     }
 
     const skip = (page - 1) * limit;

@@ -2,11 +2,11 @@ import { Controller, Get, Post, Body, Param, Delete, Query, Put } from '@nestjs/
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { FilterCategoryDto } from './dto/filter-category.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from 'src/app/entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
-import { CategoryFilter } from 'src/app/shared/utils/filter-utils';
 
 @ApiTags('Categories')
 @ApiBearerAuth('bearer')
@@ -27,23 +27,8 @@ export class CategoriesController {
 
   @Get()
   @Public() // Public route - không cần authentication
-  async findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('name') name?: string,
-    @Query('parentId') parentId?: string,
-    @Query('isSubCategory') isSubCategory?: string,
-  ) {
-    const filter: CategoryFilter = {
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
-      name,
-      parentId,
-      isSubCategory:
-        isSubCategory === 'true' ? true : isSubCategory === 'false' ? false : undefined,
-    };
-
-    const result = await this.categoriesService.findAll(filter);
+  async findAll(@Query() filterDto: FilterCategoryDto) {
+    const result = await this.categoriesService.findAll(filterDto);
 
     return {
       message: 'Categories retrieved successfully',

@@ -1,0 +1,174 @@
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { CreateOrderDto } from './dto/create-order.dto';
+import { FilterOrderDto } from './dto/filter-order.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Order, OrderStatus } from 'src/app/entities/order.entity';
+import { Repository } from 'typeorm';
+import { OrderDetail } from 'src/app/entities/order-detail.entity';
+import { PaginationResponse } from 'src/app/shared/utils/response-utils';
+import { vnpay } from 'src/config/vnpay.config';
+
+@Injectable()
+export class OrdersService {
+  constructor(
+    @InjectRepository(Order)
+    private readonly orderRepository: Repository<Order>,
+
+    @InjectRepository(OrderDetail)
+    private readonly orderDetailRepository: Repository<OrderDetail>,
+  ) {}
+  async create(createOrderDto: CreateOrderDto, userId: string): Promise<Order> {
+    const order = this.orderRepository.create(createOrderDto);
+    order.userId = userId;
+    order.status = OrderStatus.PENDING;
+    const savedOrder = await this.orderRepository.save(order);
+
+    const orderDetails = createOrderDto.orderItems.map((orderItem) => {
+      return {
+        ...orderItem,
+        orderId: savedOrder.id,
+      };
+    });
+
+    await this.orderDetailRepository.save(orderDetails);
+
+    return await this.findOne(savedOrder.id);
+  }
+
+  async findOne(id: string) {
+    const order = await this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoinAndSelect('order.voucher', 'voucher')
+      .leftJoin('order.user', 'user')
+      .addSelect(['user.id', 'user.email', 'user.fullName', 'user.avatar'])
+      .where('order.id = :id', { id })
+      .getOne();
+
+    if (!order) {
+      throw new BadRequestException(`Order with ID ${id} not found`);
+    }
+
+    const orderDetails = await this.orderDetailRepository.find({
+      where: { orderId: id },
+      relations: ['course'],
+    });
+
+    return { ...order, orderDetails };
+  }
+
+  async findAll(filter: FilterOrderDto): Promise<PaginationResponse<any>> {
+    const { page = 1, limit = 10, courseId, voucherId } = filter;
+
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoin('order.user', 'user')
+      .addSelect(['user.id', 'user.email', 'user.fullName', 'user.avatar']);
+
+    if (voucherId) {
+      queryBuilder.andWhere('order.voucherId = :voucherId', { voucherId });
+    }
+
+    if (courseId) {
+      queryBuilder
+        .leftJoin('detail_orders', 'orderDetail', 'orderDetail.order_id = order.id')
+        .andWhere('orderDetail.course_id = :courseId', { courseId });
+    }
+
+    queryBuilder.skip((page - 1) * limit);
+    queryBuilder.take(limit);
+
+    const [orders, total] = await queryBuilder.getManyAndCount();
+
+    if (orders.length === 0) {
+      return {
+        items: [],
+        pagination: {
+          totalPage: 0,
+          totalItems: 0,
+          currentPage: page,
+          itemsPerPage: limit,
+        },
+      };
+    }
+
+    const orderIds = orders.map((order) => order.id);
+
+    const allOrderDetails = await this.orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .leftJoinAndSelect('orderDetail.course', 'course')
+      .where('orderDetail.orderId IN (:...orderIds)', { orderIds })
+      .getMany();
+
+    const orderIdsWithVoucher = orders.filter((o) => o.voucherId).map((o) => o.id);
+    let vouchers = [];
+    if (orderIdsWithVoucher.length > 0) {
+      vouchers = await this.orderRepository
+        .createQueryBuilder('order')
+        .leftJoinAndSelect('order.voucher', 'voucher')
+        .where('order.id IN (:...orderIds)', { orderIds: orderIdsWithVoucher })
+        .getMany();
+    }
+
+    const ordersWithDetails = orders.map((order) => {
+      const orderDetails = allOrderDetails.filter((detail) => detail.orderId === order.id);
+      const orderWithVoucher = vouchers.find((v) => v.id === order.id);
+      return {
+        ...order,
+        voucher: orderWithVoucher?.voucher || null,
+        orderDetails,
+      };
+    });
+
+    return {
+      items: ordersWithDetails,
+      pagination: {
+        totalPage: Math.ceil(total / limit),
+        totalItems: total,
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+    };
+  }
+
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+    const order = await this.findOne(orderId);
+
+    if (!order) {
+      throw new BadRequestException(`Order with ID ${orderId} not found`);
+    }
+
+    order.status = status;
+    return await this.orderRepository.save(order);
+  }
+
+  async createVnpayPaymentUrl(
+    orderId: string,
+    amount: number,
+    ipAddr: string,
+    orderInfo?: string,
+  ): Promise<string> {
+    try {
+      const paymentUrl = vnpay.buildPaymentUrl({
+        vnp_Amount: amount,
+        vnp_IpAddr: ipAddr,
+        vnp_ReturnUrl: `${process.env.VNP_RETURN_URL!}/payment-callback`,
+        vnp_TxnRef: orderId,
+        vnp_OrderInfo: orderInfo || `Transaction of order: ${orderId}`,
+        vnp_BankCode: 'NCB',
+      });
+
+      return paymentUrl;
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async verifyVnpayReturn(query: any): Promise<boolean> {
+    try {
+      const verify = vnpay.verifyReturnUrl(query);
+      return verify.isVerified;
+    } catch (error) {
+      return false;
+    }
+  }
+}
