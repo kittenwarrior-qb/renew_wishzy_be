@@ -8,6 +8,10 @@ import { OrderDetail } from 'src/app/entities/order-detail.entity';
 import { PaginationResponse } from 'src/app/shared/utils/response-utils';
 import { vnpay } from 'src/config/vnpay.config';
 
+export interface OrderWithDetails extends Order {
+  orderDetails: OrderDetail[];
+}
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -17,7 +21,7 @@ export class OrdersService {
     @InjectRepository(OrderDetail)
     private readonly orderDetailRepository: Repository<OrderDetail>,
   ) {}
-  async create(createOrderDto: CreateOrderDto, userId: string): Promise<Order> {
+  async create(createOrderDto: CreateOrderDto, userId: string): Promise<OrderWithDetails> {
     const order = this.orderRepository.create(createOrderDto);
     order.userId = userId;
     order.status = OrderStatus.PENDING;
@@ -35,7 +39,7 @@ export class OrdersService {
     return await this.findOne(savedOrder.id);
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<OrderWithDetails> {
     const order = await this.orderRepository
       .createQueryBuilder('order')
       .leftJoinAndSelect('order.voucher', 'voucher')
@@ -130,7 +134,7 @@ export class OrdersService {
     };
   }
 
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<OrderWithDetails> {
     const order = await this.findOne(orderId);
 
     if (!order) {

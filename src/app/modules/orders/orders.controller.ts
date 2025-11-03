@@ -9,11 +9,16 @@ import { User, UserRole } from 'src/app/entities/user.entity';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { OrderStatus } from 'src/app/entities/order.entity';
 import { Public } from '../auth/decorators/public.decorator';
+import { EnrollmentsService } from '../enrollments/enrollments.service';
+import { CreateEnrollmentDto } from '../enrollments/dto/create-enrollment.dto';
 
 @Controller('orders')
 @ApiTags('Orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly enrollmentService: EnrollmentsService,
+  ) {}
 
   @Post()
   async create(
@@ -68,6 +73,15 @@ export class OrdersController {
     // Check if payment successful
     if (responseCode === '00' && transactionStatus === '00') {
       const order = await this.ordersService.updateOrderStatus(orderId, OrderStatus.COMPLETED);
+      const orderDetails = order.orderDetails;
+      const enrollentDatas: CreateEnrollmentDto[] = orderDetails.map((orderDetail) => {
+        return {
+          courseId: orderDetail.courseId,
+          userId: order.userId,
+          detailOrderId: orderDetail.id,
+        };
+      });
+      await this.enrollmentService.create(enrollentDatas);
       return {
         message: 'Payment successful. Order completed.',
         order,
