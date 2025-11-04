@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: wishzy-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    networks:
+      - wishzy-network-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 768M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: wishzy-app-prod
+    restart: always
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-3000}
+      DATABASE_ENABLED: ${DATABASE_ENABLED:-true}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_URL: ${DB_URL:-}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-1d}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-7d}
+      THROTTLE_TTL: ${THROTTLE_TTL:-60}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-10}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      FRONTEND_URL: ${FRONTEND_URL}
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_SECURE: ${MAIL_SECURE:-true}
+      MAIL_USER: ${MAIL_USER}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      MAIL_FROM: ${MAIL_FROM}
+      VNP_TMNCODE: ${VNP_TMNCODE}
+      VNP_SECRET: ${VNP_SECRET}
+      VNP_HOST: ${VNP_HOST}
+      VNP_RETURN_URL: ${VNP_RETURN_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - wishzy-network-prod
+    # Resource limits optimized for 1 vCPU / 2GB RAM server
+    deploy:
+      resources:
+        limits:
+          cpus: '0.8'
+          memory: 1G
+        reservations:
+          cpus: '0.3'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data_prod:
+    driver: local
+
+networks:
+  wishzy-network-prod:
+    driver: bridge
+
