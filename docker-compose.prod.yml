@@ -6,26 +6,19 @@ services:
     container_name: wishzy-postgres-prod
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-123}
+      POSTGRES_DB: ${DB_NAME:-wishzy_db}
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
     networks:
       - wishzy-network-prod
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 768M
-        reservations:
-          cpus: '0.2'
-          memory: 256M
+
   app:
     build:
       context: .
@@ -36,48 +29,39 @@ services:
     ports:
       - "${PORT:-8000}:8000"
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-8000}
       DATABASE_ENABLED: ${DATABASE_ENABLED:-true}
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      DB_URL: ${DB_URL:-}
-      JWT_SECRET: ${JWT_SECRET}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-123}
+      DB_NAME: ${DB_NAME:-wishzy_db}
+      DB_URL: ${DB_URL:-postgres://postgres:123@postgres:5432/wishzy_db}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-1d}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your_jwt_refresh_secret}
       JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-7d}
       THROTTLE_TTL: ${THROTTLE_TTL:-60}
       THROTTLE_LIMIT: ${THROTTLE_LIMIT:-10}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-      FRONTEND_URL: ${FRONTEND_URL}
-      MAIL_HOST: ${MAIL_HOST}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
       MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_SECURE: ${MAIL_SECURE:-true}
-      MAIL_USER: ${MAIL_USER}
-      MAIL_PASSWORD: ${MAIL_PASSWORD}
-      MAIL_FROM: ${MAIL_FROM}
-      VNP_TMNCODE: ${VNP_TMNCODE}
-      VNP_SECRET: ${VNP_SECRET}
-      VNP_HOST: ${VNP_HOST}
-      VNP_RETURN_URL: ${VNP_RETURN_URL}
+      MAIL_SECURE: ${MAIL_SECURE:-false}
+      MAIL_USER: ${MAIL_USER:-example@gmail.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-password}
+      MAIL_FROM: ${MAIL_FROM:-noreply@wishzy.com}
+      VNP_TMNCODE: ${VNP_TMNCODE:-SGVHF8L0}
+      VNP_SECRET: ${VNP_SECRET:-MBLLXSXFD7XZCXG8QTKAQH38JMNILICN}
+      VNP_HOST: ${VNP_HOST:-https://sandbox.vnpayment.vn}
+      VNP_RETURN_URL: ${VNP_RETURN_URL:-http://localhost:8000/api/v1/orders}
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - wishzy-network-prod
-    # Resource limits optimized for 1 vCPU / 2GB RAM server
-    deploy:
-      resources:
-        limits:
-          cpus: '0.8'
-          memory: 1G
-        reservations:
-          cpus: '0.3'
-          memory: 512M
     logging:
       driver: "json-file"
       options:
@@ -91,4 +75,3 @@ volumes:
 networks:
   wishzy-network-prod:
     driver: bridge
-
