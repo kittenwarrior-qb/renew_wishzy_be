@@ -34,10 +34,10 @@ services:
     container_name: wishzy-app-prod
     restart: always
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-8000}:8000"
     environment:
       NODE_ENV: production
-      PORT: ${PORT:-3000}
+      PORT: ${PORT:-8000}
       DATABASE_ENABLED: ${DATABASE_ENABLED:-true}
       DB_HOST: postgres
       DB_PORT: 5432
