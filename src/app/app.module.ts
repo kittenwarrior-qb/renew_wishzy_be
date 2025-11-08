@@ -20,6 +20,8 @@ import { VouchersModule } from './modules/vouchers/vouchers.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { EnrollmentsModule } from './modules/enrollments/enrollments.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { BannersModule } from './modules/banners/banners.module';
+import { CommentsModule } from './modules/comments/comments.module';
 
 @Module({
   imports: [
@@ -82,6 +84,8 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     OrdersModule,
     EnrollmentsModule,
     UploadsModule,
+    BannersModule,
+    CommentsModule,
   ],
   providers: [
     // Global Guards
