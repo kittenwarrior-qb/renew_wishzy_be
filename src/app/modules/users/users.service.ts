@@ -1,9 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateAdminDto } from './dto/create-admin.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
 import { PaginationResponse } from 'src/app/shared/utils/response-utils';
-import { User } from 'src/app/entities/user.entity';
+import { User, UserRole } from 'src/app/entities/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -17,6 +20,26 @@ export class UsersService {
     const user = this.usersRepository.create({ ...createUserDto, verified: true });
 
     return await this.usersRepository.save(user);
+  }
+
+  async createAdmin(createAdminDto: CreateAdminDto): Promise<User> {
+    // Check if email already exists
+    const existingUser = await this.usersRepository.findOne({
+      where: { email: createAdminDto.email },
+    });
+
+    if (existingUser) {
+      throw new BadRequestException(`User with email ${createAdminDto.email} already exists`);
+    }
+
+    // Create admin user
+    const adminUser = this.usersRepository.create({
+      ...createAdminDto,
+      role: UserRole.ADMIN,
+      verified: true,
+    });
+
+    return await this.usersRepository.save(adminUser);
   }
 
   async findAll(filters: FilterUserDto): Promise<PaginationResponse<User>> {
@@ -68,5 +91,47 @@ export class UsersService {
   async remove(id: string): Promise<void> {
     const user = await this.findOne(id);
     await this.usersRepository.remove(user);
+  }
+
+  async updateProfile(userId: string, updateProfileDto: UpdateProfileDto): Promise<User> {
+    const user = await this.findOne(userId);
+
+    // Handle empty string for date fields
+    const sanitizedDto = { ...updateProfileDto };
+    if (sanitizedDto.dob === '') {
+      sanitizedDto.dob = null;
+    }
+
+    Object.assign(user, sanitizedDto);
+    return await this.usersRepository.save(user);
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<User> {
+    const { currentPassword, newPassword } = changePasswordDto;
+
+    // Find user with password (need to explicitly select password field)
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'password', 'email', 'fullName'], // Include password field
+    });
+
+    if (!user) {
+      throw new BadRequestException(`User not found`);
+    }
+
+    // Verify current password
+    const isPasswordValid = await user.validatePassword(currentPassword);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    // Set new password
+    user.setPassword(newPassword);
+
+    // Save user with new password
+    await this.usersRepository.save(user);
+
+    // Return user without password
+    return await this.findOne(userId);
   }
 }
