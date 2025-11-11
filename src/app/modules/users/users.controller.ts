@@ -1,9 +1,24 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateAdminDto } from './dto/create-admin.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserRole } from 'src/app/entities/user.entity';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -15,11 +30,28 @@ export class UsersController {
 
   @Post()
   @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create a new user' })
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
   async create(@Body() createUserDto: CreateUserDto) {
     const user = await this.usersService.createNewUserByAdmin(createUserDto);
     return {
       message: 'User created successfully',
       ...user,
+    };
+  }
+
+  @Post('admin')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create a new admin account' })
+  @ApiResponse({ status: 201, description: 'Admin account created successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Only admins can create admin accounts' })
+  async createAdmin(@Body() createAdminDto: CreateAdminDto) {
+    const admin = await this.usersService.createAdmin(createAdminDto);
+    return {
+      message: 'Admin account created successfully',
+      user: admin,
     };
   }
 
@@ -29,8 +61,48 @@ export class UsersController {
     const result = await this.usersService.findAll(filterDto);
 
     return {
-      message: 'Courses retrieved successfully',
+      message: 'Users retrieved successfully',
       data: result,
+    };
+  }
+
+  @Get('profile/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Get current user profile' })
+  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getProfile(@CurrentUser() user) {
+    const profile = await this.usersService.findOne(user.id);
+    return {
+      message: 'Profile retrieved successfully',
+      user: profile,
+    };
+  }
+
+  @Patch('profile/me')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async updateProfile(@CurrentUser() user, @Body() updateProfileDto: UpdateProfileDto) {
+    const updatedProfile = await this.usersService.updateProfile(user.id, updateProfileDto);
+    return {
+      message: 'Profile updated successfully',
+      user: updatedProfile,
+    };
+  }
+
+  @Patch('change-password')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Current password is incorrect' })
+  async changePassword(@CurrentUser() user, @Body() changePasswordDto: ChangePasswordDto) {
+    await this.usersService.changePassword(user.id, changePasswordDto);
+    return {
+      message: 'Password changed successfully',
     };
   }
 
