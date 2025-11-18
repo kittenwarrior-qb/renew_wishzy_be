@@ -21,6 +21,9 @@ export class Lecture {
   @Column({ type: 'varchar', name: 'file_url', length: 500 })
   fileUrl: string;
 
+  @Column({ type: 'jsonb', name: 'video_sources', nullable: true })
+  videoSources?: Record<string, string>;
+
   @Column({ type: 'int' })
   duration!: number;
 

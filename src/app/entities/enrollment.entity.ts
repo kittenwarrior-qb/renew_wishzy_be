@@ -49,6 +49,9 @@ export class Enrollment {
   @Column({ type: 'varchar', name: 'certificate_url', length: 255, nullable: true })
   certificateUrl?: string;
 
+  @Column({ type: 'jsonb', name: 'attributes', nullable: true })
+  attributes?: Record<string, any>;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
 

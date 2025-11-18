@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Put, UseGuards, Patch } from '@nestjs/common';
 import { LecturesService } from './lectures.service';
 import { CreateLectureDto } from './dto/create-lecture.dto';
 import { UpdateLectureDto } from './dto/update-lecture.dto';
+import { UpdateVideoSourcesDto } from './dto/update-video-sources.dto';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from 'src/app/entities/user.entity';
@@ -63,6 +64,23 @@ export class LecturesController {
     await this.lecturesService.remove(id);
     return {
       message: 'Lecture deleted successfully',
+    };
+  }
+
+  @Patch(':id/video-sources')
+  @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
+  @UseGuards(LectureOwnershipGuard)
+  async updateVideoSources(
+    @Param('id') id: string,
+    @Body() updateVideoSourcesDto: UpdateVideoSourcesDto,
+  ) {
+    const lecture = await this.lecturesService.updateVideoSources(
+      id,
+      updateVideoSourcesDto.videoSources,
+    );
+    return {
+      message: 'Video sources updated successfully',
+      ...lecture,
     };
   }
 }
