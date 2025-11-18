@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Min } from 'class-validator';
+import { IsInt, IsOptional, IsUUID, Min } from 'class-validator';
 
 export class FilterCommentDto {
   @ApiPropertyOptional({
@@ -26,4 +26,12 @@ export class FilterCommentDto {
   @IsInt()
   @Min(1)
   limit?: number = 10;
+
+  @ApiPropertyOptional({
+    description: 'Filter by course ID',
+    example: 'uuid-string',
+  })
+  @IsOptional()
+  @IsUUID()
+  courseId?: string;
 }

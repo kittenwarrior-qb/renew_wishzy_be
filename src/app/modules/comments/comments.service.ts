@@ -30,9 +30,46 @@ export class CommentsService {
   }
 
   async findAll(filter: FilterCommentDto): Promise<PaginationResponse<Comment>> {
-    const { page, limit } = filter;
-    const queryBuilder = this.commentRepository.createQueryBuilder('comment');
+    const { page, limit, courseId } = filter;
+    const queryBuilder = this.commentRepository
+      .createQueryBuilder('comment')
+      .leftJoinAndSelect('comment.user', 'user')
+      .orderBy('comment.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (courseId) {
+      queryBuilder.where('comment.courseId = :courseId', { courseId });
+    }
+
     const [comments, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items: comments,
+      pagination: {
+        totalPage: Math.ceil(total / limit),
+        totalItems: total,
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+    };
+  }
+
+  async findByCourse(
+    courseId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginationResponse<Comment>> {
+    const queryBuilder = this.commentRepository
+      .createQueryBuilder('comment')
+      .leftJoinAndSelect('comment.user', 'user')
+      .where('comment.courseId = :courseId', { courseId })
+      .orderBy('comment.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [comments, total] = await queryBuilder.getManyAndCount();
+
     return {
       items: comments,
       pagination: {
