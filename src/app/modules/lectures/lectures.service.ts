@@ -57,4 +57,10 @@ export class LecturesService {
     const lecture = await this.findOne(id);
     await this.lectureRepository.softDelete(lecture);
   }
+
+  async updateVideoSources(id: string, videoSources: Record<string, string>): Promise<Lecture> {
+    const lecture = await this.findOne(id);
+    lecture.videoSources = videoSources;
+    return await this.lectureRepository.save(lecture);
+  }
 }

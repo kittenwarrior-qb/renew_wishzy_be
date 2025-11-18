@@ -2,6 +2,7 @@ import { Controller, Get, Body, Patch, Param } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { EnrollmentsService } from './enrollments.service';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
+import { UpdateAttributeDto } from './dto/update-attribute.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from 'src/app/entities/user.entity';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -31,5 +32,14 @@ export class EnrollmentsController {
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateEnrollmentDto: UpdateEnrollmentDto) {
     return this.enrollmentsService.update(id, updateEnrollmentDto);
+  }
+
+  @Patch(':id/attributes')
+  async updateAttributes(@Param('id') id: string, @Body() updateAttributeDto: UpdateAttributeDto) {
+    const enrollment = await this.enrollmentsService.patchAttributes(id,updateAttributeDto.attributes,);
+    return {
+      message: 'Enrollment attributes updated successfully',
+      ...enrollment,
+    };
   }
 }
