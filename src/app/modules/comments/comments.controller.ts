@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, Put } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -248,6 +248,78 @@ export class CommentsController {
     await this.commentsService.dislike(commentId);
     return {
       message: 'Comment disliked successfully',
+    };
+  }
+
+  @Get('course/:courseId')
+  @Public()
+  @ApiOperation({
+    summary: 'Get all comments for a course',
+    description:
+      'Retrieve a paginated list of all comments for a specific course. Public endpoint.',
+  })
+  @ApiParam({
+    name: 'courseId',
+    description: 'The unique identifier of the course',
+    example: 'uuid-string',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (default: 10)',
+    example: 10,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Course comments retrieved successfully',
+    schema: {
+      example: {
+        message: 'Course comments retrieved successfully',
+        items: [
+          {
+            id: 'uuid',
+            content: 'Great course!',
+            rating: 5,
+            like: 10,
+            dislike: 0,
+            userId: 'uuid',
+            courseId: 'uuid',
+            createdAt: '2025-11-14T10:00:00.000Z',
+            updatedAt: '2025-11-14T10:00:00.000Z',
+            user: {
+              id: 'uuid',
+              fullName: 'John Doe',
+              avatar: 'url',
+            },
+          },
+        ],
+        pagination: {
+          totalPage: 10,
+          totalItems: 100,
+          currentPage: 1,
+          itemsPerPage: 10,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid course ID' })
+  async findByCourse(
+    @Param('courseId') courseId: string,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
+    const result = await this.commentsService.findByCourse(courseId, Number(page), Number(limit));
+    return {
+      message: 'Course comments retrieved successfully',
+      ...result,
     };
   }
 }
