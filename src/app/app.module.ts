@@ -23,6 +23,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { BannersModule } from './modules/banners/banners.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
+import { QuizzesModule } from './modules/quizzes/quizzes.module';
 
 @Module({
   imports: [
@@ -88,6 +89,7 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
     BannersModule,
     CommentsModule,
     WishlistModule,
+    QuizzesModule,
   ],
   providers: [
     // Global Guards
