@@ -25,7 +25,12 @@ export class CommentsService {
         `Cannot create comment for user ${userId} and course ${createCommentDto.courseId}`,
       );
     }
-    const comment = this.commentRepository.create({ ...createCommentDto, userId });
+    const comment = this.commentRepository.create({ 
+      ...createCommentDto, 
+      userId,
+      like: 0,
+      dislike: 0
+    });
     return await this.commentRepository.save(comment);
   }
 
@@ -112,5 +117,13 @@ export class CommentsService {
     const comment = await this.findOne(commentId);
     comment.dislike += 1;
     await this.commentRepository.save(comment);
+  }
+
+  async remove(commentId: string, userId: string): Promise<void> {
+    const comment = await this.findOne(commentId);
+    if (comment.userId !== userId) {
+      throw new ForbiddenException('You can only delete your own comment');
+    }
+    await this.commentRepository.remove(comment);
   }
 }

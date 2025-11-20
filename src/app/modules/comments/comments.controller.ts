@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Query, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Query, Put, Delete } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -22,7 +22,6 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post()
-  @Public()
   @ApiOperation({
     summary: 'Create a new comment',
     description: 'Create a new comment for a course or lesson. Requires authentication.',
@@ -248,6 +247,35 @@ export class CommentsController {
     await this.commentsService.dislike(commentId);
     return {
       message: 'Comment disliked successfully',
+    };
+  }
+
+  @Delete(':commentId')
+  @ApiOperation({
+    summary: 'Delete a comment',
+    description: 'Delete a comment. Only the comment owner can delete it. Requires authentication.',
+  })
+  @ApiParam({
+    name: 'commentId',
+    description: 'The unique identifier of the comment to delete',
+    example: 'uuid-string',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Comment deleted successfully',
+    schema: {
+      example: {
+        message: 'Comment deleted successfully',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not the comment owner' })
+  @ApiResponse({ status: 404, description: 'Comment not found' })
+  async remove(@Param('commentId') commentId: string, @CurrentUser() user: User) {
+    await this.commentsService.remove(commentId, user.id);
+    return {
+      message: 'Comment deleted successfully',
     };
   }
 
