@@ -24,6 +24,7 @@ import { BannersModule } from './modules/banners/banners.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { QuizzesModule } from './modules/quizzes/quizzes.module';
+import { StatModule } from './modules/stat/stat.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { QuizzesModule } from './modules/quizzes/quizzes.module';
     CommentsModule,
     WishlistModule,
     QuizzesModule,
+    StatModule,
   ],
   providers: [
     // Global Guards
