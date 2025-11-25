@@ -17,8 +17,7 @@ export class EnrollmentsService {
     private readonly lectureRepository: Repository<Lecture>,
 
     @InjectRepository(Chapter)
-    private readonly chapterRepository: Repository<Chapter>
-
+    private readonly chapterRepository: Repository<Chapter>,
   ) {}
   async create(createEnrollmentDtos: CreateEnrollmentDto[]): Promise<Enrollment[]> {
     const enrollments = this.enrollmentRepository.create(createEnrollmentDtos);

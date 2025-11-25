@@ -24,8 +24,8 @@ export class Enrollment {
   @Column({ type: 'uuid', name: 'user_id' })
   userId!: string;
 
-  @Column({ type: 'uuid', name: 'detail_order_id' })
-  detailOrderId!: string;
+  @Column({ type: 'uuid', name: 'detail_order_id', nullable: true })
+  detailOrderId?: string;
 
   @Column({ type: 'uuid', name: 'course_id' })
   courseId!: string;

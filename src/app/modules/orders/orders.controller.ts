@@ -28,6 +28,30 @@ export class OrdersController {
   ) {
     const order = await this.ordersService.create(createOrderDto, user.id);
 
+    // Nếu là khóa học miễn phí (totalPrice = 0), tự động complete order
+    if (order.totalPrice === 0) {
+      const completedOrder = await this.ordersService.updateOrderStatus(
+        order.id,
+        OrderStatus.COMPLETED,
+      );
+
+      // Tạo enrollments cho các khóa học miễn phí
+      const enrollentDatas: CreateEnrollmentDto[] = completedOrder.orderDetails.map(
+        (orderDetail) => ({
+          courseId: orderDetail.courseId,
+          userId: completedOrder.userId,
+          detailOrderId: orderDetail.id,
+        }),
+      );
+      await this.enrollmentService.create(enrollentDatas);
+
+      return {
+        message: 'Successfully enrolled in free course(s)',
+        order: completedOrder,
+      };
+    }
+
+    // Nếu có phí, tạo payment URL với VNPay
     const ipAddr =
       (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '127.0.0.1';
 
