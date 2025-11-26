@@ -90,6 +90,15 @@ export class MailService {
     certificateImageUrl?: string,
   ) {
     try {
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      let finalCertificateUrl = certificateUrl;
+      if (!certificateUrl.startsWith(frontendUrl)) {
+        const enrollmentId = certificateUrl.split('/certificates/')[1];
+        if (enrollmentId) {
+          finalCertificateUrl = `${frontendUrl}/certificates/${enrollmentId}`;
+        }
+      }
+
       const result = await this.resend.emails.send({
         from: `Wishzy <${this.configService.get<string>('MAIL_FROM')}>`,
         to: [email],
@@ -117,7 +126,7 @@ export class MailService {
             }
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${certificateUrl}" 
+              <a href="${finalCertificateUrl}" 
                  style="background-color: #4CAF50; color: white; padding: 14px 32px; 
                         text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
                 Xem chứng chỉ
@@ -127,7 +136,7 @@ export class MailService {
             <p style="font-size: 14px; color: #666; margin-top: 20px;">
               Hoặc copy link này vào trình duyệt:
             </p>
-            <p style="word-break: break-all; color: #2196F3; font-size: 14px;">${certificateUrl}</p>
+            <p style="word-break: break-all; color: #2196F3; font-size: 14px;">${finalCertificateUrl}</p>
             
             <p style="margin-top: 30px; font-size: 16px; line-height: 1.6;">
               Tiếp tục học tập và khám phá thêm nhiều khóa học thú vị trên Wishzy!
