@@ -195,9 +195,12 @@ export class CoursesService {
     });
   }
 
-  async getCoursesOnSale(page: number = 1, limit: number = 10): Promise<PaginationResponse<Course>> {
+  async getCoursesOnSale(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginationResponse<Course>> {
     const now = new Date();
-    
+
     const queryBuilder = this.courseRepository
       .createQueryBuilder('course')
       .leftJoinAndSelect('course.category', 'category')
