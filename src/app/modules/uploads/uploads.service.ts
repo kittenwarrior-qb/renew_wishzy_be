@@ -98,6 +98,10 @@ export class UploadsService {
     };
   }
 
+  async getVideoInfo(videoId: string) {
+    return this.bunnyService.getVideoInfo(videoId);
+  }
+
   private extractPublicIdFromUrl(url: string): string {
     // Extract public_id from Cloudinary URL
     // Example: https://res.cloudinary.com/demo/image/upload/v1234567890/wishzy/avatars/abc123.jpg

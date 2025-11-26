@@ -1,4 +1,4 @@
-import { IsObject, IsOptional } from 'class-validator';
+import { IsObject, IsOptional, IsNumber, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateVideoSourcesDto {
@@ -15,4 +15,14 @@ export class UpdateVideoSourcesDto {
   @IsOptional()
   @IsObject()
   videoSources?: Record<string, string>;
+
+  @ApiProperty({
+    description: 'Video duration in seconds (real duration from video file)',
+    example: 3600,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  videoDuration?: number;
 }

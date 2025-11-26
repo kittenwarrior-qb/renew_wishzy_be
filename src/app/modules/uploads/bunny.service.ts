@@ -98,7 +98,20 @@ export class BunnyService {
         }),
       );
 
-      return response.data;
+      const videoData = response.data;
+
+      return {
+        videoId: videoData.guid,
+        title: videoData.title,
+        duration: videoData.length,
+        status: videoData.status,
+        thumbnailUrl: videoData.thumbnailFileName
+          ? `https://${this.bunnyCdnHostname}/${videoData.guid}/${videoData.thumbnailFileName}`
+          : null,
+        videoUrl: `https://${this.bunnyCdnHostname}/${videoData.guid}/play_720p.mp4`,
+        iframeUrl: `https://iframe.mediadelivery.net/embed/${this.bunnyLibraryId}/${videoData.guid}`,
+        availableResolutions: videoData.availableResolutions || [],
+      };
     } catch (error) {
       console.error('Bunny get video error:', error.response?.data || error.message);
       throw new BadRequestException(

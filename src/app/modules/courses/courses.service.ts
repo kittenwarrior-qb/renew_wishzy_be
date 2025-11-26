@@ -42,7 +42,8 @@ export class CoursesService {
       .leftJoinAndSelect('course.category', 'category')
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
-      .leftJoinAndSelect('course.chapters', 'chapter');
+      .leftJoinAndSelect('course.chapters', 'chapter')
+      .loadRelationCountAndMap('course.reviewCount', 'course.comments');
     if (categoryId) {
       queryBuilder.andWhere('course.categoryId = :categoryId', { categoryId });
     }
@@ -97,6 +98,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email', 'creator.avatar'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
       .where('course.id = :id', { id })
       .getOne();
 
@@ -133,6 +135,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
       .where('course.status = :status', { status: true })
       .orderBy('course.averageRating', 'DESC')
       .addOrderBy('course.numberOfStudents', 'DESC')
@@ -163,6 +166,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
       .where('course.createdBy = :instructorId', { instructorId })
       .orderBy('course.createdAt', 'DESC')
       .skip((page - 1) * limit)
