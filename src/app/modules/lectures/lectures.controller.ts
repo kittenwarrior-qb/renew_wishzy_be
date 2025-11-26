@@ -77,6 +77,7 @@ export class LecturesController {
     const lecture = await this.lecturesService.updateVideoSources(
       id,
       updateVideoSourcesDto.videoSources,
+      updateVideoSourcesDto.videoDuration,
     );
     return {
       message: 'Video sources updated successfully',

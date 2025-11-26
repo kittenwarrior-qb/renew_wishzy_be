@@ -28,7 +28,7 @@ export class MailService {
                         text-decoration: none; border-radius: 5px; display: inline-block;">
                 Verify Email
               </a>
-            </div>wishzy.com
+            </div>
             <p>Or copy and paste this link in your browser:</p>
             <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
             <p style="color: #999; font-size: 12px; margin-top: 30px;">
@@ -79,6 +79,74 @@ export class MailService {
     } catch (error) {
       console.error('Failed to send password reset email:', error);
       throw new Error(`Failed to send password reset email: ${error.message}`);
+    }
+  }
+
+  async sendCertificateEmail(
+    email: string,
+    fullName: string,
+    courseName: string,
+    certificateUrl: string,
+    certificateImageUrl?: string,
+  ) {
+    try {
+      const result = await this.resend.emails.send({
+        from: `Wishzy <${this.configService.get<string>('MAIL_FROM')}>`,
+        to: [email],
+        subject: `Chúc mừng! Bạn đã hoàn thành khóa học ${courseName} - Wishzy`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #4CAF50;">🎉 Chúc mừng ${fullName}!</h2>
+            <p style="font-size: 16px; line-height: 1.6;">
+              Bạn đã hoàn thành xuất sắc khóa học: <strong>${courseName}</strong>
+            </p>
+            <p style="font-size: 16px; line-height: 1.6;">
+              Chứng chỉ của bạn đã sẵn sàng!
+            </p>
+            
+            ${
+              certificateImageUrl
+                ? `
+              <div style="margin: 30px 0; text-align: center;">
+                <img src="${certificateImageUrl}" 
+                     alt="Certificate" 
+                     style="max-width: 100%; height: auto; border: 2px solid #ddd; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
+              </div>
+            `
+                : ''
+            }
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${certificateUrl}" 
+                 style="background-color: #4CAF50; color: white; padding: 14px 32px; 
+                        text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Xem chứng chỉ
+              </a>
+            </div>
+            
+            <p style="font-size: 14px; color: #666; margin-top: 20px;">
+              Hoặc copy link này vào trình duyệt:
+            </p>
+            <p style="word-break: break-all; color: #2196F3; font-size: 14px;">${certificateUrl}</p>
+            
+            <p style="margin-top: 30px; font-size: 16px; line-height: 1.6;">
+              Tiếp tục học tập và khám phá thêm nhiều khóa học thú vị trên Wishzy!
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+            
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              Chứng chỉ này là minh chứng cho sự nỗ lực và cống hiến của bạn.
+            </p>
+          </div>
+        `,
+      });
+
+      console.log('Certificate email sent successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to send certificate email:', error);
+      throw new Error(`Failed to send certificate email: ${error.message}`);
     }
   }
 }

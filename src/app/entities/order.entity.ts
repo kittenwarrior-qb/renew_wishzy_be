@@ -20,6 +20,7 @@ export enum PaymentMethod {
   MOMO = 'momo',
   VNPay = 'vnpay',
   ZaloPay = 'zalopay',
+  FREE = 'free',
 }
 
 @Entity('orders')

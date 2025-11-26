@@ -7,6 +7,7 @@ import { Comment } from 'src/app/entities/comment.entity';
 import { Enrollment } from 'src/app/entities/enrollment.entity';
 import { PaginationResponse } from 'src/app/shared/utils/response-utils';
 import { FilterCommentDto } from './dto/filter-comment.dto';
+import { CoursesService } from '../courses/courses.service';
 
 @Injectable()
 export class CommentsService {
@@ -15,6 +16,7 @@ export class CommentsService {
     private readonly commentRepository: Repository<Comment>,
     @InjectRepository(Enrollment)
     private readonly enrollmentRepository: Repository<Enrollment>,
+    private readonly coursesService: CoursesService,
   ) {}
   async create(createCommentDto: CreateCommentDto, userId: string): Promise<Comment> {
     const enrollment = await this.enrollmentRepository.findOne({
@@ -25,8 +27,18 @@ export class CommentsService {
         `Cannot create comment for user ${userId} and course ${createCommentDto.courseId}`,
       );
     }
-    const comment = this.commentRepository.create({ ...createCommentDto, userId });
-    return await this.commentRepository.save(comment);
+    const comment = this.commentRepository.create({
+      ...createCommentDto,
+      userId,
+      like: 0,
+      dislike: 0,
+    });
+    const savedComment = await this.commentRepository.save(comment);
+
+    // Update course average rating
+    await this.updateCourseAverageRating(createCommentDto.courseId);
+
+    return savedComment;
   }
 
   async findAll(filter: FilterCommentDto): Promise<PaginationResponse<Comment>> {
@@ -98,8 +110,16 @@ export class CommentsService {
     if (comment.userId !== userId) {
       throw new ForbiddenException('You can only edit your own comment');
     }
+    const courseId = comment.courseId;
     Object.assign(comment, updateCommentDto);
-    return this.commentRepository.save(comment);
+    const savedComment = await this.commentRepository.save(comment);
+
+    // Update course average rating if rating changed
+    if (updateCommentDto.rating !== undefined) {
+      await this.updateCourseAverageRating(courseId);
+    }
+
+    return savedComment;
   }
 
   async like(commentId: string): Promise<void> {
@@ -112,5 +132,31 @@ export class CommentsService {
     const comment = await this.findOne(commentId);
     comment.dislike += 1;
     await this.commentRepository.save(comment);
+  }
+
+  async remove(commentId: string, userId: string): Promise<void> {
+    const comment = await this.findOne(commentId);
+    if (comment.userId !== userId) {
+      throw new ForbiddenException('You can only delete your own comment');
+    }
+    const courseId = comment.courseId;
+    await this.commentRepository.remove(comment);
+
+    // Update course average rating after deletion
+    await this.updateCourseAverageRating(courseId);
+  }
+
+  /**
+   * Calculate and update the average rating for a course
+   */
+  private async updateCourseAverageRating(courseId: string): Promise<void> {
+    const result = await this.commentRepository
+      .createQueryBuilder('comment')
+      .select('AVG(comment.rating)', 'avgRating')
+      .where('comment.courseId = :courseId', { courseId })
+      .getRawOne();
+
+    const averageRating = result?.avgRating ? parseFloat(result.avgRating) : 0;
+    await this.coursesService.updateAverageRating(courseId, averageRating);
   }
 }

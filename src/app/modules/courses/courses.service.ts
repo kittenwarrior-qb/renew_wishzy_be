@@ -42,7 +42,8 @@ export class CoursesService {
       .leftJoinAndSelect('course.category', 'category')
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
-      .leftJoinAndSelect('course.chapters', 'chapter');
+      .leftJoinAndSelect('course.chapters', 'chapter')
+      .loadRelationCountAndMap('course.reviewCount', 'course.comments');
     if (categoryId) {
       queryBuilder.andWhere('course.categoryId = :categoryId', { categoryId });
     }
@@ -97,6 +98,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email', 'creator.avatar'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
       .where('course.id = :id', { id })
       .getOne();
 
@@ -133,6 +135,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
       .where('course.status = :status', { status: true })
       .orderBy('course.averageRating', 'DESC')
       .addOrderBy('course.numberOfStudents', 'DESC')
@@ -163,7 +166,50 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
       .where('course.createdBy = :instructorId', { instructorId })
+      .orderBy('course.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const [courses, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items: courses,
+      pagination: {
+        totalPage: Math.ceil(total / limit),
+        totalItems: total,
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+    };
+  }
+
+  async incrementNumberOfStudents(courseId: string): Promise<void> {
+    await this.courseRepository.increment({ id: courseId }, 'numberOfStudents', 1);
+  }
+
+  async updateAverageRating(courseId: string, averageRating: number): Promise<void> {
+    await this.courseRepository.update(courseId, {
+      averageRating: Math.round(averageRating * 100) / 100,
+    });
+  }
+
+  async getCoursesOnSale(page: number = 1, limit: number = 10): Promise<PaginationResponse<Course>> {
+    const now = new Date();
+    
+    const queryBuilder = this.courseRepository
+      .createQueryBuilder('course')
+      .leftJoinAndSelect('course.category', 'category')
+      .leftJoin('course.creator', 'creator')
+      .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
+      .leftJoinAndSelect('course.chapters', 'chapter')
+      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
+      .where('course.status = :status', { status: true })
+      .andWhere("course.sale_info->>'saleStartDate' IS NOT NULL")
+      .andWhere("course.sale_info->>'saleEndDate' IS NOT NULL")
+      .andWhere("(course.sale_info->>'saleStartDate')::timestamp <= :now", { now })
+      .andWhere("(course.sale_info->>'saleEndDate')::timestamp >= :now", { now })
       .orderBy('course.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);

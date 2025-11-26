@@ -68,6 +68,25 @@ export class CoursesController {
     };
   }
 
+  @Get('on-sale')
+  @Public()
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number', example: 1 })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page',
+    example: 10,
+  })
+  async getCoursesOnSale(@Query('page') page: number = 1, @Query('limit') limit: number = 10) {
+    const results = await this.coursesService.getCoursesOnSale(page, limit);
+
+    return {
+      message: 'Courses on sale retrieved successfully',
+      ...results,
+    };
+  }
+
   @Get('instructor/my-courses')
   @Roles(UserRole.INSTRUCTOR, UserRole.ADMIN)
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number', example: 1 })

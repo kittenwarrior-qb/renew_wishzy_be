@@ -1,5 +1,6 @@
-import { Controller, Get, Body, Patch, Param } from '@nestjs/common';
+import { Controller, Get, Body, Patch, Param, Req } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Request } from 'express';
 import { EnrollmentsService } from './enrollments.service';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
 import { UpdateAttributeDto } from './dto/update-attribute.dto';
@@ -35,11 +36,30 @@ export class EnrollmentsController {
   }
 
   @Patch(':id/attributes')
-  async updateAttributes(@Param('id') id: string, @Body() updateAttributeDto: UpdateAttributeDto) {
-    const enrollment = await this.enrollmentsService.patchAttributes(id,updateAttributeDto.attributes,);
+  async updateAttributes(
+    @Param('id') id: string,
+    @Body() updateAttributeDto: UpdateAttributeDto,
+    @Req() req: Request,
+  ) {
+    const origin = req.headers.origin || req.headers.referer?.split('/').slice(0, 3).join('/');
+    const enrollment = await this.enrollmentsService.patchAttributes(
+      id,
+      updateAttributeDto.attributes,
+      origin,
+    );
     return {
       message: 'Enrollment attributes updated successfully',
       ...enrollment,
     };
+  }
+
+  @Get(':id/certificate')
+  async getCertificate(@Param('id') id: string) {
+    return this.enrollmentsService.getCertificate(id);
+  }
+
+  @Patch(':id/certificate/regenerate')
+  async regenerateCertificate(@Param('id') id: string) {
+    return this.enrollmentsService.regenerateCertificate(id);
   }
 }

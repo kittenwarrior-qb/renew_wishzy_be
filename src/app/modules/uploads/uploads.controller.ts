@@ -96,4 +96,17 @@ export class UploadsController {
 
     return this.uploadsService.uploadImage(file);
   }
+
+  @Post('video/:videoId/info')
+  @ApiOperation({ summary: 'Get video information from Bunny.net' })
+  @ApiResponse({ status: 200, description: 'Video info retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid video ID' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getVideoInfo(@Body('videoId') videoId: string) {
+    if (!videoId) {
+      throw new BadRequestException('Video ID is required');
+    }
+
+    return this.uploadsService.getVideoInfo(videoId);
+  }
 }

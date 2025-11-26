@@ -21,10 +21,10 @@ export class Comment {
   @Column({ type: 'numeric', name: 'rating' })
   rating!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', default: 0 })
   like!: number;
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', default: 0 })
   dislike!: number;
 
   @Column({ type: 'uuid', name: 'user_id' })

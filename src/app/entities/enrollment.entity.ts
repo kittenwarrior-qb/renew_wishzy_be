@@ -24,8 +24,8 @@ export class Enrollment {
   @Column({ type: 'uuid', name: 'user_id' })
   userId!: string;
 
-  @Column({ type: 'uuid', name: 'detail_order_id' })
-  detailOrderId!: string;
+  @Column({ type: 'uuid', name: 'detail_order_id', nullable: true })
+  detailOrderId?: string;
 
   @Column({ type: 'uuid', name: 'course_id' })
   courseId!: string;
@@ -48,6 +48,9 @@ export class Enrollment {
 
   @Column({ type: 'varchar', name: 'certificate_url', length: 255, nullable: true })
   certificateUrl?: string;
+
+  @Column({ type: 'varchar', name: 'certificate_image_url', length: 500, nullable: true })
+  certificateImageUrl?: string;
 
   @Column({ type: 'jsonb', name: 'attributes', nullable: true })
   attributes?: Record<string, any>;
