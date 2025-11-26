@@ -60,6 +60,80 @@ export class OrdersService {
     return { ...order, orderDetails };
   }
 
+  async findUserOrders(userId: string, filter: FilterOrderDto): Promise<PaginationResponse<any>> {
+    const { page = 1, limit = 10, courseId, voucherId } = filter;
+
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .where('order.userId = :userId', { userId })
+      .orderBy('order.createdAt', 'DESC');
+
+    if (voucherId) {
+      queryBuilder.andWhere('order.voucherId = :voucherId', { voucherId });
+    }
+
+    if (courseId) {
+      queryBuilder
+        .leftJoin('detail_orders', 'orderDetail', 'orderDetail.order_id = order.id')
+        .andWhere('orderDetail.course_id = :courseId', { courseId });
+    }
+
+    queryBuilder.skip((page - 1) * limit);
+    queryBuilder.take(limit);
+
+    const [orders, total] = await queryBuilder.getManyAndCount();
+
+    if (orders.length === 0) {
+      return {
+        items: [],
+        pagination: {
+          totalPage: 0,
+          totalItems: 0,
+          currentPage: page,
+          itemsPerPage: limit,
+        },
+      };
+    }
+
+    const orderIds = orders.map((order) => order.id);
+
+    const allOrderDetails = await this.orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .leftJoinAndSelect('orderDetail.course', 'course')
+      .where('orderDetail.orderId IN (:...orderIds)', { orderIds })
+      .getMany();
+
+    const orderIdsWithVoucher = orders.filter((o) => o.voucherId).map((o) => o.id);
+    let vouchers = [];
+    if (orderIdsWithVoucher.length > 0) {
+      vouchers = await this.orderRepository
+        .createQueryBuilder('order')
+        .leftJoinAndSelect('order.voucher', 'voucher')
+        .where('order.id IN (:...orderIds)', { orderIds: orderIdsWithVoucher })
+        .getMany();
+    }
+
+    const ordersWithDetails = orders.map((order) => {
+      const orderDetails = allOrderDetails.filter((detail) => detail.orderId === order.id);
+      const orderWithVoucher = vouchers.find((v) => v.id === order.id);
+      return {
+        ...order,
+        voucher: orderWithVoucher?.voucher || null,
+        orderDetails,
+      };
+    });
+
+    return {
+      items: ordersWithDetails,
+      pagination: {
+        totalPage: Math.ceil(total / limit),
+        totalItems: total,
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+    };
+  }
+
   async findAll(filter: FilterOrderDto): Promise<PaginationResponse<any>> {
     const { page = 1, limit = 10, courseId, voucherId } = filter;
 

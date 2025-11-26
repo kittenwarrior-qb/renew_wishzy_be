@@ -87,6 +87,16 @@ export class OrdersController {
     };
   }
 
+  @Get('my-orders')
+  async getMyOrders(@CurrentUser() user: User, @Query() filterDto: FilterOrderDto) {
+    const results = await this.ordersService.findUserOrders(user.id, filterDto);
+
+    return {
+      ...results,
+      message: 'Orders retrieved successfully',
+    };
+  }
+
   @Get()
   @Roles(UserRole.ADMIN)
   async findAll(@Query() filterDto: FilterOrderDto) {
