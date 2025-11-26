@@ -49,6 +49,9 @@ export class Enrollment {
   @Column({ type: 'varchar', name: 'certificate_url', length: 255, nullable: true })
   certificateUrl?: string;
 
+  @Column({ type: 'varchar', name: 'certificate_image_url', length: 500, nullable: true })
+  certificateImageUrl?: string;
+
   @Column({ type: 'jsonb', name: 'attributes', nullable: true })
   attributes?: Record<string, any>;
 

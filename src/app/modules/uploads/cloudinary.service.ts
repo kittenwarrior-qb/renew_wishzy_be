@@ -17,12 +17,16 @@ export class CloudinaryService {
     file: Express.Multer.File,
     folder: string = 'wishzy',
   ): Promise<UploadApiResponse | UploadApiErrorResponse> {
+    const isCertificate = folder === 'certificates';
+    
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           folder: folder,
           resource_type: 'auto',
-          transformation: [{ width: 500, height: 500, crop: 'limit' }, { quality: 'auto' }],
+          transformation: isCertificate 
+            ? [{ quality: 'auto:best' }] 
+            : [{ width: 500, height: 500, crop: 'limit' }, { quality: 'auto' }],
         },
         (error, result) => {
           if (error) return reject(error);

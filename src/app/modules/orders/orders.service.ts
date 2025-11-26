@@ -151,6 +151,13 @@ export class OrdersService {
     ipAddr: string,
     orderInfo?: string,
   ): Promise<string> {
+    // Validate amount (VNPay requires minimum 5,000 VND)
+    if (amount < 5000) {
+      throw new BadRequestException(
+        `Invalid payment amount: ${amount}. VNPay requires minimum 5,000 VND`,
+      );
+    }
+
     try {
       const paymentUrl = vnpay.buildPaymentUrl({
         vnp_Amount: amount,

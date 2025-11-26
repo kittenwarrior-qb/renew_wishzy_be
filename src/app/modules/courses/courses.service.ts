@@ -180,4 +180,14 @@ export class CoursesService {
       },
     };
   }
+
+  async incrementNumberOfStudents(courseId: string): Promise<void> {
+    await this.courseRepository.increment({ id: courseId }, 'numberOfStudents', 1);
+  }
+
+  async updateAverageRating(courseId: string, averageRating: number): Promise<void> {
+    await this.courseRepository.update(courseId, {
+      averageRating: Math.round(averageRating * 100) / 100,
+    });
+  }
 }
