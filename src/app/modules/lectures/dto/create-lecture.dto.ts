@@ -24,7 +24,7 @@ export class CreateLectureDto {
   fileUrl!: string;
 
   @ApiProperty({
-    description: 'Lecture duration (minutes)',
+    description: 'Lecture duration in seconds',
     example: 120,
   })
   @IsNumber()
