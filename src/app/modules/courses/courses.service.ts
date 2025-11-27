@@ -229,4 +229,79 @@ export class CoursesService {
       },
     };
   }
+
+  /**
+   * Recalculate all course statistics (durations, ratings, comment counts)
+   * This should be called by admin when data needs to be fixed
+   */
+  async recalculateAllCourseStats(): Promise<{
+    chaptersUpdated: number;
+    coursesUpdated: number;
+    message: string;
+  }> {
+    const queryRunner = this.courseRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Step 1: Update chapter durations
+      const chapterResult = await queryRunner.query(`
+        UPDATE chapters c
+        SET duration = COALESCE((
+          SELECT SUM(l.duration)
+          FROM lectures l
+          WHERE l.chapter_id = c.id
+            AND l.deleted_at IS NULL
+        ), 0)
+        WHERE c.deleted_at IS NULL
+      `);
+
+      // Step 2: Update course durations
+      await queryRunner.query(`
+        UPDATE courses co
+        SET total_duration = COALESCE((
+          SELECT SUM(ch.duration)
+          FROM chapters ch
+          WHERE ch.course_id = co.id
+            AND ch.deleted_at IS NULL
+        ), 0)
+        WHERE co.deleted_at IS NULL
+      `);
+
+      // Step 3: Update average ratings
+      await queryRunner.query(`
+        UPDATE courses co
+        SET average_rating = COALESCE((
+          SELECT ROUND(AVG(c.rating)::numeric, 2)
+          FROM comments c
+          WHERE c.course_id = co.id
+        ), 0)
+        WHERE co.deleted_at IS NULL
+      `);
+
+      // Step 4: Update comment counts
+      const courseResult = await queryRunner.query(`
+        UPDATE courses co
+        SET rating = COALESCE((
+          SELECT COUNT(*)
+          FROM comments c
+          WHERE c.course_id = co.id
+        ), 0)
+        WHERE co.deleted_at IS NULL
+      `);
+
+      await queryRunner.commitTransaction();
+
+      return {
+        chaptersUpdated: chapterResult[1] || 0,
+        coursesUpdated: courseResult[1] || 0,
+        message: 'Successfully recalculated all course statistics',
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new BadRequestException('Failed to recalculate course statistics');
+    } finally {
+      await queryRunner.release();
+    }
+  }
 }

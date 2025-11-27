@@ -52,11 +52,25 @@ export class BunnyService {
         ),
       );
 
+      // Try to get video info to retrieve duration (may not be available immediately)
+      let duration = 0;
+      try {
+        // Wait a bit for video processing to start
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const videoInfo = await this.getVideoInfo(videoId);
+        duration = videoInfo.duration || 0;
+      } catch (error) {
+        console.warn('Could not fetch video duration immediately:', error.message);
+        // Duration will be 0, frontend should handle this
+      }
+
       return {
         videoId: videoId,
+        url: `https://${this.bunnyCdnHostname}/${videoId}/play_720p.mp4`,
         videoUrl: `https://${this.bunnyCdnHostname}/${videoId}/play_720p.mp4`,
         thumbnailUrl: `https://${this.bunnyCdnHostname}/${videoId}/thumbnail.jpg`,
         iframeUrl: `https://iframe.mediadelivery.net/embed/${this.bunnyLibraryId}/${videoId}`,
+        duration: duration,
       };
     } catch (error) {
       console.error('Bunny upload error:', error.response?.data || error.message);

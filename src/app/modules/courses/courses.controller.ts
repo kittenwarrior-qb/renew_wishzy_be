@@ -150,4 +150,17 @@ export class CoursesController {
       message: 'Course deleted successfully',
     };
   }
+
+  @Post('recalculate-stats')
+  @Roles(UserRole.ADMIN)
+  async recalculateStats() {
+    const result = await this.coursesService.recalculateAllCourseStats();
+    return {
+      message: result.message,
+      data: {
+        chaptersUpdated: result.chaptersUpdated,
+        coursesUpdated: result.coursesUpdated,
+      },
+    };
+  }
 }
