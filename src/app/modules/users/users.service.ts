@@ -252,6 +252,8 @@ export class UsersService {
     await this.usersRepository.insert(fakeUsers);
 
     return { created: quantity };
+  }
+
   async requestInstructorRole(userId: string): Promise<User> {
     const user = await this.findOne(userId);
 
