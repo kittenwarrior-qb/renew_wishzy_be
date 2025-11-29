@@ -1,298 +1,334 @@
-# NestJS Starter Kit
+# Docker Setup - Wishzy Backend
 
-A comprehensive, production-ready starter kit for NestJS applications with built-in authentication, enhanced security, database integration, and industry best practices.
+## LOCAL (Development)
 
-## Features
-
-- **Advanced Authentication**
-  - JWT-based authentication with refresh tokens
-  - Two-factor authentication (2FA) with encrypted secrets
-  - API key authentication
-  
-- **Security Enhancements**
-  - AES-256-CBC encryption for sensitive data
-  - Secure password handling with bcrypt
-  - Protection against common web vulnerabilities
-  - Rate limiting and throttling
-  
-- **Authorization**
-  - Role-based access control
-  - Public/private route decorators
-  
-- **Database Integration**
-  - TypeORM with PostgreSQL
-  - Entity inheritance with BaseEntity
-  - Efficient pagination
-  
-- **API Documentation**
-  - Swagger/OpenAPI with rich metadata
-  - Detailed endpoint descriptions
-  - Authentication examples
-  
-- **Environment Configuration**
-  - Environment-specific configurations
-  - Strong validation with Joi
-  - Sensible defaults
-  
-- **Request Validation**
-  - Comprehensive DTO validation with class-validator
-  - Detailed error messages
-  - Request transformation
-  
-- **Error Handling**
-  - Global exception filters
-  - Standardized error responses
-  - JWT-specific error handling
-  
-- **Developer Experience**
-  - Hot module replacement
-  - Standardized module structure
-  - SWC compiler for faster builds
-  - Integration tests
-  - Extensive documentation
-
-## Security Features
-
-### Encrypted 2FA Secrets
-
-This starter kit implements industry-standard encryption for 2FA secrets, addressing a common security vulnerability. Features include:
-
-- **AES-256-CBC Encryption**: Military-grade encryption for 2FA secrets
-- **Unique Initialization Vectors**: Each secret gets a unique IV for enhanced security
-- **Transparent Encryption/Decryption**: Handled automatically by the system
-- **Error Handling**: Robust error handling for cryptographic operations
-
-### Enhanced Authentication
-
-- Multiple authentication strategies (JWT, API Key)
-- Complete JWT authentication with access and refresh tokens
-- Configurable token expiration
-- Protection against common authentication attacks
-
-### Data Protection
-
-- All sensitive data is properly encrypted or hashed
-- Passwords are hashed using bcrypt with proper salt rounds
-- Personal information is protected according to best practices
-- Refresh tokens are securely stored with hashing
-
-## Prerequisites
-
-- Node.js (>=14.x)
-- PostgreSQL
-- npm or yarn
-
-## Getting Started
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/latreon/nest-starter-kit.git
-   cd nest-starter-kit
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Set up environment variables:
-   - Copy `.env.example` to `.env.development`:
-     ```bash
-     cp .env.example .env.development
-     ```
-   - Update the values in `.env.development` with your configuration
-   - **Important**: Replace all placeholder secrets with strong, unique values
-   - Make sure to set both `JWT_SECRET` and `JWT_REFRESH_SECRET` with different values
-
-4. Run database migrations:
-   ```bash
-   npm run migration:run
-   ```
-   This will create the initial database schema with a `users` table for authentication.
-
-5. Start the development server:
-   ```bash
-   npm run start:dev
-   ```
-
-6. Access the API documentation at: `http://localhost:3000/api/docs`
-
-## Project Structure
-
-The project follows a standardized modular structure:
-
-```
-src/
-├── app/                  # Application core
-│   ├── common/           # Common utilities and helpers
-│   │   ├── decorators/   # Custom decorators
-│   │   ├── docs/         # API documentation
-│   │   ├── entities/     # Base entities
-│   │   ├── dto/          # Common DTOs
-│   │   ├── services/     # Common services like encryption
-│   │   └── exception/    # Exception filters
-│   └── modules/          # Feature modules
-│       ├── auth/         # Authentication module
-│       │   ├── controllers/ # Auth controllers
-│       │   ├── dto/      # Auth-specific DTOs
-│       │   ├── entities/ # Auth-related entities
-│       │   ├── guards/   # Auth guards
-│       │   ├── services/ # Auth services
-│       │   ├── strategies/ # Passport strategies
-│       │   └── types/    # Auth type definitions
-│       ├── user/         # User management module
-│       │   ├── controllers/ # User controllers
-│       │   ├── dto/      # User-specific DTOs
-│       │   ├── entities/ # User entities
-│       │   └── services/ # User services
-│       └── shared/       # Shared services and utilities
-├── config/               # Configuration settings
-├── database/             # Database setup and migrations
-└── main.ts               # Application entry point
-```
-
-Each feature module follows the same standardized structure, matching the organization of the common module.
-
-## Authentication Flow
-
-The starter kit provides several authentication methods:
-
-1. **JWT Authentication with Refresh Tokens**
-   - Login with email/password to receive access and refresh tokens
-   - Use access token for authenticated requests
-   - When access token expires, use refresh token to get a new pair of tokens
-   - Logout to invalidate refresh tokens
-
-2. **Two-Factor Authentication (2FA)**
-   - Enable 2FA for enhanced security
-   - 2FA secrets are securely encrypted in the database
-   - TOTP-based verification (compatible with apps like Google Authenticator)
-
-3. **API Key Authentication**
-   - Alternative authentication for service-to-service communication
-   - Unique per-user API keys with fine-grained permissions
-
-## Refresh Token Implementation
-
-This starter kit implements a secure refresh token mechanism:
-
-1. **How it works:**
-   - After successful login, both access and refresh tokens are issued
-   - Access tokens have a shorter lifespan (default 15 minutes)
-   - Refresh tokens have a longer lifespan (default 7 days)
-   - When the access token expires, the refresh token can be used to get a new pair of tokens
-   - Refresh tokens are stored securely in the database using bcrypt hashing
-
-2. **Endpoints:**
-   - `/auth/login` - Returns access and refresh tokens
-   - `/auth/refresh` - Uses refresh token to issue new tokens
-   - `/auth/logout` - Invalidates the refresh token
-
-3. **Security considerations:**
-   - Different secrets for access and refresh tokens
-   - Refresh tokens are hashed before storage
-   - One-time use - each refresh operation invalidates the old token
-
-## SWC Compiler Support
-
-This starter kit utilizes SWC for faster compilation:
-
-- Significantly faster build times compared to TypeScript compiler
-- Same type-checking capabilities when using `typeCheck: true`
-- Compatible with all NestJS features
-- Configured for optimal performance
-
-## Testing
-
-Run unit tests:
 ```bash
-npm run test
+cd be
+
+# Chạy với Docker Compose
+docker-compose up -d
+
+# Xem logs
+docker-compose logs -f
+
+# Chạy migrations
+docker-compose exec app npm run migration:run
+
+# Seed data (nếu cần)
+docker-compose exec app npm run seed
+
+# Dừng
+docker-compose down
+
+# Rebuild khi có thay đổi code
+docker-compose up -d --build
+
+# Xóa tất cả (bao gồm data)
+docker-compose down -v
 ```
 
-Run end-to-end tests:
+**Truy cập:**
+- API: http://localhost:8000
+- Swagger: http://localhost:8000/api
+- PostgreSQL: localhost:5432
+
+---
+
+## VPS (Production)
+
+### 1. Cài Docker trên VPS
+
 ```bash
-npm run test:e2e
+# SSH vào VPS
+ssh root@your-vps-ip
+
+# Update system
+apt update && apt upgrade -y
+
+# Cài Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+
+# Cài Docker Compose
+curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+
+# Verify
+docker --version
+docker-compose --version
 ```
 
-Run integration tests:
+### 2. Upload code lên VPS
+
 ```bash
-npm run test:integration
+# Từ máy local
+scp -r ./be root@your-vps-ip:/var/www/wishzy/
+
+# Hoặc dùng Git
+ssh root@your-vps-ip
+cd /var/www
+git clone your-repo-url wishzy
 ```
 
-### Integration Tests
+### 3. Cấu hình .env.production
 
-The starter kit includes integration tests that verify the interaction between different parts of the application:
-
-- Tests for authentication flows (login, refresh token)
-- Tests for user operations
-- Tests with database interactions 
-
-Integration tests are located in the `test/integration` directory and follow the module structure.
-
-## Customizing the Starter Kit
-
-### Adding a New Module
-
-1. Create a new directory in `src/app/modules/`
-2. Follow the standard module structure (controllers/, services/, entities/, etc.)
-3. Import the new module in `app.module.ts`
-
-### Database Migrations
-
-Generate a new migration:
 ```bash
-npm run migration:generate -- -n MigrationName
+cd /var/www/wishzy/be
+nano .env.production
 ```
 
-Run migrations:
+**⚠️ BẮT BUỘC thay đổi:**
+
 ```bash
+# 1. Database password (đừng dùng mặc định)
+DB_PASSWORD=your_strong_password_here
+
+# 2. JWT secrets (generate random)
+JWT_SECRET=your_random_32_chars_string
+JWT_REFRESH_SECRET=your_different_random_string
+
+# 3. Domains
+ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com
+FRONTEND_URL=https://your-frontend-domain.com
+VNP_RETURN_URL=https://your-domain.com/api/v1/orders
+GOOGLE_CALLBACK_URL=https://your-domain.com/api/v1/auth/google/callback
+
+# 4. Tắt Swagger
+SWAGGER_ENABLED=false
+```
+
+**Generate JWT secrets:**
+```bash
+# Linux/Mac
+openssl rand -base64 32
+
+# Windows PowerShell
+[Convert]::ToBase64String((1..32 | ForEach-Object { Get-Random -Maximum 256 }))
+```
+
+### 4. Chạy Docker trên VPS
+
+```bash
+cd /var/www/wishzy/be
+
+# Build và start
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+# Xem logs
+docker-compose logs -f
+
+# Check status
+docker-compose ps
+```
+
+### 5. Chạy Migrations
+
+```bash
+# Vào container
+docker-compose exec app sh
+
+# Chạy migrations
 npm run migration:run
+
+# Seed data (nếu cần)
+npm run seed
+
+# Exit
+exit
 ```
 
-Revert the latest migration:
+### 6. Setup Nginx (Reverse Proxy)
+
 ```bash
-npm run migration:revert
+# Cài Nginx
+apt install nginx -y
+
+# Tạo config
+nano /etc/nginx/sites-available/wishzy
 ```
 
-## Security Best Practices
+**Paste config:**
 
-This starter kit follows these security best practices:
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com www.your-domain.com;
 
-1. **No Sensitive Data in Plain Text**: All sensitive data is encrypted or hashed
-2. **Properly Configured JWT**: Secure signing, appropriate expiration
-3. **Rate Limiting**: Protection against brute force attacks
-4. **Input Validation**: All input is validated before processing
-5. **Content Security**: Headers are properly set for security
-6. **Error Handling**: No sensitive information in error messages
-7. **Database Security**: Parameterized queries to prevent SQL injection
-8. **Token Security**: Separate secrets for access and refresh tokens
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+```
 
-## Production Deployment
+**Enable site:**
 
-Before deploying to production:
-
-1. Create a `.env.production` file with secure settings
-2. Generate strong, unique secrets for JWT, refresh tokens, and encryption
-3. Set appropriate rate limiting and security settings
-4. Disable Swagger in production (`SWAGGER_ENABLED=false`)
-5. Set up proper SSL/TLS for all communications
-
-Build the application:
 ```bash
-npm run build
+# Link config
+ln -s /etc/nginx/sites-available/wishzy /etc/nginx/sites-enabled/
+
+# Test config
+nginx -t
+
+# Restart Nginx
+systemctl restart nginx
 ```
 
-Start in production mode:
+### 7. Setup SSL (Let's Encrypt)
+
 ```bash
-npm run start:prod
+# Cài Certbot
+apt install certbot python3-certbot-nginx -y
+
+# Generate SSL certificate
+certbot --nginx -d your-domain.com -d www.your-domain.com
+
+# Test auto-renewal
+certbot renew --dry-run
 ```
 
-## Contributing
+### 8. Setup Firewall
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```bash
+# Enable UFW
+ufw enable
 
-## License
+# Allow ports
+ufw allow 22/tcp   # SSH
+ufw allow 80/tcp   # HTTP
+ufw allow 443/tcp  # HTTPS
 
-[MIT](LICENSE)
+# Check status
+ufw status
+```
 
-**Nest.js Starter Kit** - Created by [Karimov Farda](https://github.com/latreon)
+---
+
+## Quản lý Production
+
+### Update code
+
+```bash
+cd /var/www/wishzy/be
+
+# Pull latest
+git pull origin main
+
+# Rebuild
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build
+
+# Run new migrations
+docker-compose exec app npm run migration:run
+```
+
+### Xem logs
+
+```bash
+# App logs
+docker-compose logs -f app
+
+# PostgreSQL logs
+docker-compose logs -f postgres
+
+# Nginx logs
+tail -f /var/log/nginx/access.log
+tail -f /var/log/nginx/error.log
+```
+
+### Backup Database
+
+```bash
+# Backup
+docker-compose exec postgres pg_dump -U postgres wishzy_db > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# Restore
+docker-compose exec -T postgres psql -U postgres wishzy_db < backup_20241129.sql
+```
+
+### Restart services
+
+```bash
+# Restart all
+docker-compose restart
+
+# Restart app only
+docker-compose restart app
+
+# Restart Nginx
+systemctl restart nginx
+```
+
+### Monitor resources
+
+```bash
+# Docker stats
+docker stats
+
+# Disk usage
+df -h
+
+# Memory
+free -h
+
+# Processes
+htop
+```
+
+---
+
+## Troubleshooting
+
+### Container không start
+```bash
+docker-compose logs app
+docker-compose restart app
+```
+
+### Database connection failed
+```bash
+docker-compose exec postgres pg_isready -U postgres
+docker-compose restart postgres
+```
+
+### Nginx 502 Bad Gateway
+```bash
+# Check app running
+docker-compose ps
+
+# Check Nginx
+nginx -t
+tail -f /var/log/nginx/error.log
+```
+
+### Port đã được sử dụng
+```bash
+# Check port
+netstat -tulpn | grep 8000
+
+# Kill process
+kill -9 <PID>
+```
+
+---
+
+## Truy cập
+
+**Local:**
+- API: http://localhost:8000
+- Swagger: http://localhost:8000/api
+
+**Production:**
+- API: https://your-domain.com
+- Health: https://your-domain.com/health

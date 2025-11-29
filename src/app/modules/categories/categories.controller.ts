@@ -3,7 +3,7 @@ import { CategoriesService } from './categories.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { FilterCategoryDto } from './dto/filter-category.dto';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from 'src/app/entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
@@ -77,6 +77,29 @@ export class CategoriesController {
     await this.categoriesService.hardDelete(id);
     return {
       message: 'Category permanently deleted',
+    };
+  }
+
+  @Post('test-create')
+  @Roles(UserRole.ADMIN)
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        quantity: {
+          type: 'number',
+          example: 10,
+          description: 'Number of test categories to create',
+        },
+      },
+      required: ['quantity'],
+    },
+  })
+  async testCreate(@Body('quantity') quantity: number) {
+    const result = await this.categoriesService.testCreate(quantity);
+    return {
+      message: `Successfully created ${result.created} test categories`,
+      data: result,
     };
   }
 }

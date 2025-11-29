@@ -14,9 +14,10 @@ import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { FilterCourseDto } from './dto/filter-course.dto';
+import { TestCreateCourseDto } from './dto/test-create-course.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from 'src/app/entities/user.entity';
-import { ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from 'src/app/entities/user.entity';
 import { Public } from '../auth/decorators/public.decorator';
@@ -161,6 +162,73 @@ export class CoursesController {
         chaptersUpdated: result.chaptersUpdated,
         coursesUpdated: result.coursesUpdated,
       },
+    };
+  }
+
+  @Post('test-create')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Create test courses with chapters and lectures',
+    description:
+      'Generate and create multiple fake Vietnamese courses with chapters and lectures for testing purposes. Only accessible by admin users.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        quantity: {
+          type: 'number',
+          example: 5,
+          description: 'Number of test courses to create',
+        },
+        chaptersPerCourse: {
+          type: 'number',
+          example: 5,
+          description: 'Number of chapters per course (optional, default: 5)',
+        },
+        lecturesPerChapter: {
+          type: 'number',
+          example: 5,
+          description: 'Number of lectures per chapter (optional, default: 5)',
+        },
+      },
+      required: ['quantity'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Test courses created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Successfully created 5 test courses' },
+        data: {
+          type: 'object',
+          properties: {
+            created: { type: 'number', example: 5 },
+            chapters: { type: 'number', example: 25 },
+            lectures: { type: 'number', example: 125 },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
+  async testCreate(
+    @Body()
+    body: { quantity: number; chaptersPerCourse?: number; lecturesPerChapter?: number },
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.coursesService.testCreate(
+      body.quantity,
+      user.id,
+      body.chaptersPerCourse,
+      body.lecturesPerChapter,
+    );
+    return {
+      message: `Successfully created ${result.created} test courses with ${result.chapters} chapters and ${result.lectures} lectures`,
+      data: result,
     };
   }
 }

@@ -1,6 +1,17 @@
 # Build stage
 FROM node:20-alpine AS builder
 
+# Install dependencies for canvas (Python, build tools)
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev
+
 # Set working directory
 WORKDIR /app
 
@@ -19,6 +30,22 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine AS production
 
+# Install dependencies for canvas (build + runtime)
+RUN apk add --no-cache \
+    python3 \
+    make \
+    g++ \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev \
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    pixman
+
 # Set working directory
 WORKDIR /app
 
@@ -26,13 +53,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 
-# Expose port (Render will override this with PORT env variable)
-EXPOSE 3000
+# Expose port
+EXPOSE 8000
 
 # Start application
 CMD ["node", "dist/main"]

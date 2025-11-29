@@ -9,7 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -221,6 +221,58 @@ export class UsersController {
     await this.usersService.remove(id);
     return {
       message: 'User deleted successfully',
+    };
+  }
+
+  @Post('test-create')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Create test users',
+    description:
+      'Generate and create multiple fake Vietnamese users for testing purposes. Only accessible by admin users.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        quantity: {
+          type: 'number',
+          example: 10,
+          description: 'Number of test users to create',
+        },
+        role: {
+          type: 'string',
+          enum: ['user', 'instructor', 'admin'],
+          example: 'user',
+          description: 'Role for the test users (optional)',
+        },
+      },
+      required: ['quantity'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Test users created successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Successfully created 10 test users' },
+        data: {
+          type: 'object',
+          properties: {
+            created: { type: 'number', example: 10 },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })
+  async testCreate(@Body() body: { quantity: number; role?: UserRole }) {
+    const result = await this.usersService.testCreate(body.quantity, body.role);
+    return {
+      message: `Successfully created ${result.created} test users`,
+      data: result,
     };
   }
 }

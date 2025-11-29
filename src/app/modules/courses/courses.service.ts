@@ -304,4 +304,77 @@ export class CoursesService {
       await queryRunner.release();
     }
   }
+
+  async testCreate(
+    quantity: number,
+    userId: string,
+    chaptersPerCourse: number = 5,
+    lecturesPerChapter: number = 5,
+  ): Promise<{ created: number; chapters: number; lectures: number }> {
+    const { CourseTestDataGenerator, ChapterTestDataGenerator, LectureTestDataGenerator } =
+      await import('./courses.create-test');
+
+    const categoryIds = await this.courseRepository.manager.query(
+      'SELECT id FROM categories LIMIT 10',
+    );
+
+    if (categoryIds.length === 0) {
+      throw new BadRequestException('No categories found. Please create categories first.');
+    }
+
+    const categoryIdList = categoryIds.map((cat: any) => cat.id);
+
+    const fakeCourses = CourseTestDataGenerator.generateVietnameseCourses(
+      quantity,
+      categoryIdList,
+      userId,
+    );
+
+    const courses = fakeCourses.map((course) => ({
+      ...course,
+      rating: 0,
+      status: true,
+      averageRating: 0,
+      numberOfStudents: 0,
+    }));
+
+    const insertedCourses = await this.courseRepository.save(courses);
+
+    let totalChapters = 0;
+    let totalLectures = 0;
+
+    for (const course of insertedCourses) {
+      const chapters = ChapterTestDataGenerator.generateChapters(
+        course.id,
+        userId,
+        chaptersPerCourse,
+      );
+
+      const insertedChapters = await this.courseRepository.manager
+        .getRepository('Chapter')
+        .save(chapters);
+
+      totalChapters += insertedChapters.length;
+
+      for (const chapter of insertedChapters) {
+        const lectures = LectureTestDataGenerator.generateLectures(
+          chapter.id,
+          userId,
+          lecturesPerChapter,
+        );
+
+        const insertedLectures = await this.courseRepository.manager
+          .getRepository('Lecture')
+          .save(lectures);
+
+        totalLectures += insertedLectures.length;
+      }
+    }
+
+    return {
+      created: quantity,
+      chapters: totalChapters,
+      lectures: totalLectures,
+    };
+  }
 }
