@@ -158,4 +158,57 @@ export class MailService {
       throw new Error(`Failed to send certificate email: ${error.message}`);
     }
   }
+
+  async sendInstructorApprovalEmail(email: string, fullName: string) {
+    try {
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+
+      const result = await this.resend.emails.send({
+        from: `Wishzy <${this.configService.get<string>('MAIL_FROM')}>`,
+        to: [email],
+        subject: 'Chúc mừng! Bạn đã trở thành Giảng viên - Wishzy',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #4CAF50;">🎉 Chúc mừng ${fullName}!</h2>
+            <p style="font-size: 16px; line-height: 1.6;">
+              Yêu cầu trở thành giảng viên của bạn đã được <strong>chấp nhận</strong>!
+            </p>
+            <p style="font-size: 16px; line-height: 1.6;">
+              Bạn hiện đã có thể tạo và quản lý các khóa học của riêng mình trên nền tảng Wishzy.
+            </p>
+            
+            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 30px 0;">
+              <h3 style="margin-top: 0; color: #333;">Bước tiếp theo:</h3>
+              <ul style="line-height: 1.8; color: #555;">
+                <li>Đăng nhập vào tài khoản của bạn</li>
+                <li>Truy cập trang quản lý giảng viên</li>
+                <li>Bắt đầu tạo khóa học đầu tiên của bạn</li>
+              </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${frontendUrl}" 
+                 style="background-color: #4CAF50; color: white; padding: 14px 32px; 
+                        text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Truy cập Wishzy
+              </a>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+            
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              Chúc bạn thành công trên hành trình chia sẻ kiến thức!
+            </p>
+          </div>
+        `,
+      });
+
+      console.log('Instructor approval email sent successfully:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to send instructor approval email:', error);
+      // Don't throw error - we want to continue even if email fails
+      return null;
+    }
+  }
 }

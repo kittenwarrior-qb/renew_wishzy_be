@@ -137,10 +137,24 @@ export class UsersController {
     };
   }
 
+  @Get('pending-instructors')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get list of pending instructor requests (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Pending instructors retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  async getPendingInstructors(@Query() filterDto: FilterUserDto) {
+    const result = await this.usersService.getPendingInstructors(filterDto);
+    return {
+      message: 'Pending instructors retrieved successfully',
+      data: result,
+    };
+  }
+
   @Get(':id')
   @Roles(UserRole.ADMIN)
-  findOne(@Param('id') id: string) {
-    const user = this.usersService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const user = await this.usersService.findOne(id);
     return {
       message: 'User retrieved successfully',
       ...user,
@@ -154,6 +168,50 @@ export class UsersController {
     return {
       message: 'User updated successfully',
       ...updatedUser,
+    };
+  }
+
+  @Post('request-instructor')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Request to become an instructor' })
+  @ApiResponse({ status: 200, description: 'Instructor role requested successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - Already an instructor' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async requestInstructorRole(@CurrentUser() user: User) {
+    const updatedUser = await this.usersService.requestInstructorRole(user.id);
+    return {
+      message: 'Instructor role activated successfully',
+      data: updatedUser,
+    };
+  }
+
+  @Patch(':id/approve-instructor')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Approve user as instructor (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Instructor role approved successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - User does not have pending request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  async approveInstructorRole(@Param('id') id: string) {
+    const updatedUser = await this.usersService.approveInstructorRole(id);
+    return {
+      message: 'Instructor role approved successfully',
+      data: updatedUser,
+    };
+  }
+
+  @Patch(':id/reject-instructor')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Reject instructor request (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Instructor request rejected successfully' })
+  @ApiResponse({ status: 400, description: 'Bad request - User does not have pending request' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  async rejectInstructorRole(@Param('id') id: string) {
+    const updatedUser = await this.usersService.rejectInstructorRole(id);
+    return {
+      message: 'Instructor request rejected successfully',
+      data: updatedUser,
     };
   }
 

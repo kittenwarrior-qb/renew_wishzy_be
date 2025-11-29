@@ -52,4 +52,12 @@ export class FilterUserDto {
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
+
+  @ApiPropertyOptional({
+    description: 'Filter by instructor activation status',
+    example: true,
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  isInstructorActive?: boolean;
 }

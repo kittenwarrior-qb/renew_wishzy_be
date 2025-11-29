@@ -58,9 +58,10 @@ export class QuizzesService {
       for (let j = 0; j < questionData.answerOptions.length; j++) {
         const optionData = questionData.answerOptions[j];
         const option = this.answerOptionRepository.create({
-          ...optionData,
           questionId: savedQuestion.id,
           orderIndex: j,
+          optionText: optionData.optionText,
+          isCorrect: optionData.isCorrect,
         });
         await this.answerOptionRepository.save(option);
       }
