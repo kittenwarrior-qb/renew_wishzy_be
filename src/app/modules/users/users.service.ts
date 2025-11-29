@@ -11,6 +11,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Enrollment } from 'src/app/entities/enrollment.entity';
 import { Course } from 'src/app/entities/course.entity';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +22,7 @@ export class UsersService {
     private readonly enrollmentRepository: Repository<Enrollment>,
     @InjectRepository(Course)
     private readonly courseRepository: Repository<Course>,
+    private readonly mailService: MailService,
   ) {}
   async createNewUserByAdmin(createUserDto: CreateUserDto): Promise<User> {
     const user = this.usersRepository.create({ ...createUserDto, verified: true });
@@ -49,7 +51,7 @@ export class UsersService {
   }
 
   async findAll(filters: FilterUserDto): Promise<PaginationResponse<User>> {
-    const { page, limit, fullName, email, role } = filters;
+    const { page, limit, fullName, email, role, isInstructorActive } = filters;
     const queryBuilder = this.usersRepository.createQueryBuilder('user');
 
     if (fullName) {
@@ -62,6 +64,12 @@ export class UsersService {
 
     if (role) {
       queryBuilder.andWhere('user.role = :role', { role });
+    }
+
+    if (isInstructorActive !== undefined) {
+      queryBuilder.andWhere('user.isInstructorActive = :isInstructorActive', {
+        isInstructorActive,
+      });
     }
 
     const [users, total] = await queryBuilder
@@ -227,6 +235,94 @@ export class UsersService {
 
     return {
       items: students,
+      pagination: {
+        totalPage: Math.ceil(total / limit),
+        totalItems: total,
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+    };
+  }
+
+  async requestInstructorRole(userId: string): Promise<User> {
+    const user = await this.findOne(userId);
+
+    // Check if already an instructor
+    if (user.role === UserRole.INSTRUCTOR) {
+      throw new BadRequestException('You are already an instructor');
+    }
+
+    // Check if already requested
+    if (user.isInstructorActive && user.role === UserRole.USER) {
+      throw new BadRequestException('Your instructor request is pending approval');
+    }
+
+    // Set pending status: role = user, isInstructorActive = true
+    user.isInstructorActive = true;
+
+    return await this.usersRepository.save(user);
+  }
+
+  async approveInstructorRole(userId: string): Promise<User> {
+    const user = await this.findOne(userId);
+
+    // Check if user has pending request
+    if (!user.isInstructorActive || user.role !== UserRole.USER) {
+      throw new BadRequestException('User does not have a pending instructor request');
+    }
+
+    // Approve: change role to instructor and set isInstructorActive to false
+    user.role = UserRole.INSTRUCTOR;
+    user.isInstructorActive = false;
+
+    const updatedUser = await this.usersRepository.save(user);
+
+    // Send approval email (fire and forget - don't wait for result)
+    this.mailService.sendInstructorApprovalEmail(user.email, user.fullName).catch((error) => {
+      console.error('Failed to send instructor approval email, but continuing:', error);
+    });
+
+    return updatedUser;
+  }
+
+  async rejectInstructorRole(userId: string): Promise<User> {
+    const user = await this.findOne(userId);
+
+    // Check if user has pending request
+    if (!user.isInstructorActive || user.role !== UserRole.USER) {
+      throw new BadRequestException('User does not have a pending instructor request');
+    }
+
+    // Reject: keep role as user and set isInstructorActive to false
+    user.isInstructorActive = false;
+
+    return await this.usersRepository.save(user);
+  }
+
+  async getPendingInstructors(filters: FilterUserDto): Promise<PaginationResponse<User>> {
+    const { page, limit, fullName, email } = filters;
+    const queryBuilder = this.usersRepository.createQueryBuilder('user');
+
+    // Filter pending instructors: role = user AND isInstructorActive = true
+    queryBuilder
+      .andWhere('user.role = :role', { role: UserRole.USER })
+      .andWhere('user.isInstructorActive = :isInstructorActive', { isInstructorActive: true });
+
+    if (fullName) {
+      queryBuilder.andWhere('user.fullName ILIKE :fullName', { fullName: `%${fullName}%` });
+    }
+
+    if (email) {
+      queryBuilder.andWhere('user.email ILIKE :email', { email: `%${email}%` });
+    }
+
+    const [users, total] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      items: users,
       pagination: {
         totalPage: Math.ceil(total / limit),
         totalItems: total,
