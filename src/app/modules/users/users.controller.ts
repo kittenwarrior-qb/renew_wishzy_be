@@ -139,8 +139,8 @@ export class UsersController {
 
   @Get(':id')
   @Roles(UserRole.ADMIN)
-  findOne(@Param('id') id: string) {
-    const user = this.usersService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    const user = await this.usersService.findOne(id);
     return {
       message: 'User retrieved successfully',
       ...user,
