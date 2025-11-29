@@ -235,4 +235,14 @@ export class UsersService {
       },
     };
   }
+
+  async testCreate(quantity: number, role?: UserRole): Promise<{ created: number }> {
+    const { UserTestDataGenerator } = await import('./users.create-test');
+
+    const fakeUsers = UserTestDataGenerator.generateVietnameseUsers(quantity, role);
+
+    await this.usersRepository.insert(fakeUsers);
+
+    return { created: quantity };
+  }
 }

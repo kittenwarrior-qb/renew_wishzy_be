@@ -170,4 +170,14 @@ export class CategoriesService {
     // Sau đó hard delete category cha
     await this.categoryRepository.remove(category);
   }
+
+  async testCreate(quantity: number): Promise<{ created: number }> {
+    const { CategoryTestDataGenerator } = await import('./categories.create-test');
+
+    const fakeCategories = CategoryTestDataGenerator.generateCategories(quantity);
+
+    await this.categoryRepository.insert(fakeCategories);
+
+    return { created: quantity };
+  }
 }
