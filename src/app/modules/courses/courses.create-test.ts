@@ -102,7 +102,13 @@ export class ChapterTestDataGenerator {
     courseId: string,
     createdBy: string,
     index: number,
-  ): { name: string; courseId: string; description?: string; duration?: number; createdBy: string } {
+  ): {
+    name: string;
+    courseId: string;
+    description?: string;
+    duration?: number;
+    createdBy: string;
+  } {
     const chapterTopics = [
       'Giới thiệu',
       'Cài đặt môi trường',
@@ -129,7 +135,13 @@ export class ChapterTestDataGenerator {
     courseId: string,
     createdBy: string,
     quantity: number,
-  ): { name: string; courseId: string; description?: string; duration?: number; createdBy: string }[] {
+  ): {
+    name: string;
+    courseId: string;
+    description?: string;
+    duration?: number;
+    createdBy: string;
+  }[] {
     const chapters = [];
 
     for (let i = 0; i < quantity; i++) {
@@ -168,10 +180,26 @@ export class LectureTestDataGenerator {
       'Tổng kết',
     ];
 
+    const sampleVideos = [
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4',
+      'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WhatCarCanYouGetForAGrand.mp4',
+    ];
+
     return {
       name: `Bài ${index + 1}: ${faker.helpers.arrayElement(lectureTopics)}`,
       description: faker.lorem.sentence(),
-      fileUrl: faker.internet.url() + '/video.mp4',
+      fileUrl: faker.helpers.arrayElement(sampleVideos),
       duration: faker.number.int({ min: 180, max: 900 }),
       isPreview: index === 0 ? faker.datatype.boolean({ probability: 0.3 }) : false,
       orderIndex: index + 1,
