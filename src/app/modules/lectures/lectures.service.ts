@@ -21,17 +21,59 @@ export class LecturesService {
       throw new BadRequestException(`Chapter with ID ${createLectureDto.chapterId} not found`);
     }
 
-    const lecture = this.lectureRepository.create({ ...createLectureDto, createdBy: userId });
-    const savedLecture = await this.lectureRepository.save(lecture);
+    // Use transaction to ensure atomicity
+    const queryRunner = this.lectureRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    // Update chapter and course durations after creation
-    await this.updateChapterDuration(createLectureDto.chapterId);
+    try {
+      // Auto set orderIndex if not provided
+      let orderIndex = createLectureDto.orderIndex;
+      if (orderIndex === undefined || orderIndex === null) {
+        const maxOrderIndex = await queryRunner.manager
+          .createQueryBuilder(Lecture, 'lecture')
+          .select('MAX(lecture.orderIndex)', 'max')
+          .where('lecture.chapterId = :chapterId', { chapterId: createLectureDto.chapterId })
+          .getRawOne();
 
-    return savedLecture;
+        orderIndex = (maxOrderIndex?.max ?? -1) + 1;
+      } else {
+        // If orderIndex is provided, shift existing lectures with orderIndex >= new orderIndex
+        await queryRunner.manager
+          .createQueryBuilder()
+          .update(Lecture)
+          .set({ orderIndex: () => 'order_index + 1' })
+          .where('chapterId = :chapterId', { chapterId: createLectureDto.chapterId })
+          .andWhere('orderIndex >= :orderIndex', { orderIndex })
+          .execute();
+      }
+
+      const lecture = queryRunner.manager.create(Lecture, {
+        ...createLectureDto,
+        orderIndex,
+        createdBy: userId,
+      });
+
+      const savedLecture = await queryRunner.manager.save(lecture);
+      await queryRunner.commitTransaction();
+
+      // Update chapter and course durations after creation
+      await this.updateChapterDuration(createLectureDto.chapterId);
+
+      return savedLecture;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async findAllLectureOfChapter(chapterId: string): Promise<Lecture[]> {
-    const lectures = await this.lectureRepository.find({ where: { chapterId } });
+    const lectures = await this.lectureRepository.find({
+      where: { chapterId },
+      order: { orderIndex: 'ASC' }, // Sort by orderIndex only
+    });
 
     const validateLecture = lectures.map((lecture) => {
       if (!lecture.isPreview) {
@@ -55,6 +97,34 @@ export class LecturesService {
   async update(id: string, updateLectureDto: UpdateLectureDto): Promise<Lecture> {
     const lecture = await this.findOne(id);
     const oldDuration = lecture.duration;
+    const oldOrderIndex = lecture.orderIndex;
+    const newOrderIndex = updateLectureDto.orderIndex;
+
+    // If orderIndex is being changed, reorder other lectures
+    if (newOrderIndex !== undefined && newOrderIndex !== oldOrderIndex) {
+      if (newOrderIndex > oldOrderIndex) {
+        // Moving down: decrease orderIndex of items between old and new position
+        await this.lectureRepository
+          .createQueryBuilder()
+          .update(Lecture)
+          .set({ orderIndex: () => 'order_index - 1' })
+          .where('chapterId = :chapterId', { chapterId: lecture.chapterId })
+          .andWhere('orderIndex > :oldOrderIndex', { oldOrderIndex })
+          .andWhere('orderIndex <= :newOrderIndex', { newOrderIndex })
+          .execute();
+      } else {
+        // Moving up: increase orderIndex of items between new and old position
+        await this.lectureRepository
+          .createQueryBuilder()
+          .update(Lecture)
+          .set({ orderIndex: () => 'order_index + 1' })
+          .where('chapterId = :chapterId', { chapterId: lecture.chapterId })
+          .andWhere('orderIndex >= :newOrderIndex', { newOrderIndex })
+          .andWhere('orderIndex < :oldOrderIndex', { oldOrderIndex })
+          .execute();
+      }
+    }
+
     Object.assign(lecture, updateLectureDto);
     const savedLecture = await this.lectureRepository.save(lecture);
 

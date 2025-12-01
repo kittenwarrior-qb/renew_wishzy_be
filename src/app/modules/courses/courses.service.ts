@@ -66,6 +66,8 @@ export class CoursesService {
       queryBuilder.andWhere('course.status = :status', { status });
     }
 
+    queryBuilder.orderBy('course.created_at', 'DESC');
+
     // Get all courses first
     let [courses, total] = await queryBuilder.getManyAndCount();
 

@@ -23,11 +23,53 @@ export class ChaptersService {
   async create(createChapterDto: CreateChapterDto, userId: string): Promise<Chapter> {
     await this.validateCourse(createChapterDto.courseId);
 
-    const chapter = this.chapterRepository.create({
-      ...createChapterDto,
-      createdBy: userId,
-    });
-    return await this.chapterRepository.save(chapter);
+    // Use transaction to ensure atomicity
+    const queryRunner = this.chapterRepository.manager.connection.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // Auto set orderIndex if not provided
+      let orderIndex = createChapterDto.orderIndex;
+      if (orderIndex === undefined || orderIndex === null) {
+        const maxOrderIndex = await queryRunner.manager
+          .createQueryBuilder(Chapter, 'chapter')
+          .select('MAX(chapter.orderIndex)', 'max')
+          .where('chapter.courseId = :courseId', { courseId: createChapterDto.courseId })
+          .getRawOne();
+
+        orderIndex = (maxOrderIndex?.max ?? -1) + 1;
+      } else {
+        // If orderIndex is provided, shift existing chapters with orderIndex >= new orderIndex
+        console.log(
+          `[Chapter Create] Shifting chapters with orderIndex >= ${orderIndex} in course ${createChapterDto.courseId}`,
+        );
+        const updateResult = await queryRunner.manager
+          .createQueryBuilder()
+          .update(Chapter)
+          .set({ orderIndex: () => 'order_index + 1' })
+          .where('courseId = :courseId', { courseId: createChapterDto.courseId })
+          .andWhere('orderIndex >= :orderIndex', { orderIndex })
+          .execute();
+        console.log(`[Chapter Create] Updated ${updateResult.affected} chapters`);
+      }
+
+      const chapter = queryRunner.manager.create(Chapter, {
+        ...createChapterDto,
+        orderIndex,
+        createdBy: userId,
+      });
+
+      const savedChapter = await queryRunner.manager.save(chapter);
+      await queryRunner.commitTransaction();
+
+      return savedChapter;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async findAllChapterOfCourse(courseId: string): Promise<Chapter[]> {
@@ -49,23 +91,26 @@ export class ChaptersService {
       .where('chapter.course_id = :courseId', { courseId })
       .getRawAndEntities();
 
-    const result = chapters.entities.map((chapter) => {
-      const lecturesForChapter = chapters.raw
-        .filter((raw) => raw.chapter_id === chapter.id && raw.lecture_id !== null)
-        .map((raw) => ({
-          id: raw.lecture_id,
-          name: raw.lecture_name,
-          duration: raw.lecture_duration,
-          isPreview: raw.is_preview,
-          orderIndex: raw.order_index,
-          fileUrl: raw.is_preview ? raw.file_url : null,
-        }));
+    const result = chapters.entities
+      .map((chapter) => {
+        const lecturesForChapter = chapters.raw
+          .filter((raw) => raw.chapter_id === chapter.id && raw.lecture_id !== null)
+          .map((raw) => ({
+            id: raw.lecture_id,
+            name: raw.lecture_name,
+            duration: raw.lecture_duration,
+            isPreview: raw.is_preview,
+            orderIndex: raw.order_index,
+            fileUrl: raw.is_preview ? raw.file_url : null,
+          }))
+          .sort((a, b) => a.orderIndex - b.orderIndex); // Sort lectures by orderIndex ASC
 
-      return {
-        ...chapter,
-        lecture: lecturesForChapter,
-      };
-    });
+        return {
+          ...chapter,
+          lecture: lecturesForChapter,
+        };
+      })
+      .sort((a, b) => a.orderIndex - b.orderIndex); // Sort chapters by orderIndex ASC
 
     return result as Chapter[];
   }
@@ -85,6 +130,34 @@ export class ChaptersService {
 
   async update(id: string, updateChapterDto: UpdateChapterDto): Promise<Chapter> {
     const chapter = await this.findOne(id);
+    const oldOrderIndex = chapter.orderIndex;
+    const newOrderIndex = updateChapterDto.orderIndex;
+
+    // If orderIndex is being changed, reorder other chapters
+    if (newOrderIndex !== undefined && newOrderIndex !== oldOrderIndex) {
+      if (newOrderIndex > oldOrderIndex) {
+        // Moving down: decrease orderIndex of items between old and new position
+        await this.chapterRepository
+          .createQueryBuilder()
+          .update(Chapter)
+          .set({ orderIndex: () => 'order_index - 1' })
+          .where('courseId = :courseId', { courseId: chapter.courseId })
+          .andWhere('orderIndex > :oldOrderIndex', { oldOrderIndex })
+          .andWhere('orderIndex <= :newOrderIndex', { newOrderIndex })
+          .execute();
+      } else {
+        // Moving up: increase orderIndex of items between new and old position
+        await this.chapterRepository
+          .createQueryBuilder()
+          .update(Chapter)
+          .set({ orderIndex: () => 'order_index + 1' })
+          .where('courseId = :courseId', { courseId: chapter.courseId })
+          .andWhere('orderIndex >= :newOrderIndex', { newOrderIndex })
+          .andWhere('orderIndex < :oldOrderIndex', { oldOrderIndex })
+          .execute();
+      }
+    }
+
     return await this.chapterRepository.save({ ...chapter, ...updateChapterDto });
   }
 

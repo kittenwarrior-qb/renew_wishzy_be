@@ -152,6 +152,7 @@ export class OrdersService {
         .andWhere('orderDetail.course_id = :courseId', { courseId });
     }
 
+    queryBuilder.orderBy('order.createdAt', 'DESC');
     queryBuilder.skip((page - 1) * limit);
     queryBuilder.take(limit);
 

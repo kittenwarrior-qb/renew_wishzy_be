@@ -37,4 +37,13 @@ export class CreateChapterDto {
   @IsNumber()
   @IsOptional()
   duration?: number;
+
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Order index of the chapter (auto-generated if not provided)',
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  orderIndex?: number;
 }

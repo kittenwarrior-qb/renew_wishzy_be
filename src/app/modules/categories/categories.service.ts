@@ -44,25 +44,33 @@ export class CategoriesService {
 
     // Lấy thêm totalCourse khi query
     queryBuilder
-      .leftJoin('courses', 'course', 'course.category_id = category.id AND course.deleted_at IS NULL')
+      .leftJoin(
+        'courses',
+        'course',
+        'course.category_id = category.id AND course.deleted_at IS NULL',
+      )
       .addSelect('COUNT(course.id)', 'totalCourses')
-      .groupBy('category.id')
-      .skip((page - 1) * limit)
-      .take(limit);
+      .groupBy('category.id');
 
     const result = await queryBuilder.getRawAndEntities();
     const total = await this.categoryRepository.createQueryBuilder('category').getCount();
 
-    const categoriesWithCount = result.entities.map((category: Category, index: number) => ({
-      ...category,
-      totalCourses: parseInt(result.raw[index]?.totalCourses || '0'),
-    }));
+    // Map and sort by created_at DESC
+    const categoriesWithCount = result.entities
+      .map((category: Category, index: number) => ({
+        ...category,
+        totalCourses: parseInt(result.raw[index]?.totalCourses || '0'),
+      }))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Apply pagination after sorting
+    const paginatedCategories = categoriesWithCount.slice((page - 1) * limit, page * limit);
 
     return {
-      items: categoriesWithCount,
+      items: paginatedCategories,
       pagination: {
-        totalPage: Math.ceil(total / limit),
-        totalItems: total,
+        totalPage: Math.ceil(categoriesWithCount.length / limit),
+        totalItems: categoriesWithCount.length,
         currentPage: page,
         itemsPerPage: limit,
       },
@@ -73,7 +81,11 @@ export class CategoriesService {
     const queryBuilder = this.categoryRepository
       .createQueryBuilder('category')
       .where('category.id = :id', { id })
-      .leftJoin('courses', 'course', 'course.category_id = category.id AND course.deleted_at IS NULL')
+      .leftJoin(
+        'courses',
+        'course',
+        'course.category_id = category.id AND course.deleted_at IS NULL',
+      )
       .addSelect('COUNT(course.id)', 'totalCourses')
       .groupBy('category.id');
 
