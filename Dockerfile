@@ -30,7 +30,7 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine AS production
 
-# Install dependencies for canvas (build + runtime)
+# Install dependencies for canvas (build + runtime) and netcat for healthcheck
 RUN apk add --no-cache \
     python3 \
     make \
@@ -44,7 +44,8 @@ RUN apk add --no-cache \
     jpeg \
     pango \
     giflib \
-    pixman
+    pixman \
+    netcat-openbsd
 
 # Set working directory
 WORKDIR /app
@@ -58,8 +59,15 @@ RUN npm ci --omit=dev
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
 
+# Copy database migrations and data-source
+COPY --from=builder /app/src/database ./src/database
+
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Expose port
 EXPOSE 8000
 
-# Start application
-CMD ["node", "dist/main"]
+# Use entrypoint script
+ENTRYPOINT ["docker-entrypoint.sh"]

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class CreateEnrollmentDto {
   @ApiProperty({
@@ -19,10 +19,11 @@ export class CreateEnrollmentDto {
   userId!: string;
 
   @ApiProperty({
-    description: 'Detail Order ID',
+    description: 'Detail Order ID (optional for free courses)',
     example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
   })
   @IsUUID()
-  @IsNotEmpty()
-  detailOrderId!: string;
+  @IsOptional()
+  detailOrderId?: string;
 }

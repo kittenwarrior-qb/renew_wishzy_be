@@ -40,6 +40,47 @@ export class EnrollmentsService {
     return this.enrollmentRepository.save(enrollments);
   }
 
+  async enrollFreeCourse(courseId: string, userId: string): Promise<Enrollment> {
+    // Kiểm tra khóa học có tồn tại không
+    const course = await this.courseRepository.findOne({
+      where: { id: courseId },
+      select: ['id', 'price', 'name'],
+    });
+
+    if (!course) {
+      throw new BadRequestException('Course not found');
+    }
+
+    // Kiểm tra khóa học có miễn phí không
+    const coursePrice = Number(course.price);
+    if (coursePrice !== 0) {
+      throw new BadRequestException('This course is not free. Please purchase it through the normal checkout process.');
+    }
+
+    // Kiểm tra user đã enroll chưa
+    const existingEnrollment = await this.enrollmentRepository.findOne({
+      where: { courseId, userId },
+    });
+
+    if (existingEnrollment) {
+      throw new BadRequestException('You are already enrolled in this course');
+    }
+
+    // Tạo enrollment mới
+    const enrollment = this.enrollmentRepository.create({
+      courseId,
+      userId,
+      detailOrderId: null, // Không có order cho khóa học miễn phí
+    });
+
+    const savedEnrollment = await this.enrollmentRepository.save(enrollment);
+
+    // Tăng số lượng học viên
+    await this.courseRepository.increment({ id: courseId }, 'numberOfStudents', 1);
+
+    return savedEnrollment;
+  }
+
   async findAllEnrollmentOfUser(userId: string): Promise<Enrollment[]> {
     const enrollments = await this.enrollmentRepository
       .createQueryBuilder('enrollment')
