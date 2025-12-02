@@ -15,6 +15,9 @@ import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../../entities/user.entity';
 
 @ApiTags('Quizzes')
 @ApiBearerAuth()
@@ -76,7 +79,7 @@ export class QuizzesController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Quiz not found' })
   update(@Param('id') id: string, @Body() updateQuizDto: UpdateQuizDto, @Request() req) {
-    return this.quizzesService.update(id, updateQuizDto, req.user.id);
+    return this.quizzesService.update(id, updateQuizDto, req.user.id, req.user.role);
   }
 
   @Delete(':id')
@@ -85,7 +88,7 @@ export class QuizzesController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Quiz not found' })
   remove(@Param('id') id: string, @Request() req) {
-    return this.quizzesService.remove(id, req.user.id);
+    return this.quizzesService.remove(id, req.user.id, req.user.role);
   }
 
   @Get(':id/share')
@@ -99,5 +102,16 @@ export class QuizzesController {
   @ApiResponse({ status: 200, description: 'Quiz preview retrieved' })
   getQuizPreview(@Param('id') id: string) {
     return this.quizzesService.findOneForTaking(id);
+  }
+
+  @Get(':id/admin-details')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  @ApiOperation({ summary: 'Get complete quiz details for admin/instructor (includes correct answers)' })
+  @ApiResponse({ status: 200, description: 'Quiz details retrieved with questions and answers' })
+  @ApiResponse({ status: 403, description: 'Forbidden - User is not admin or quiz creator' })
+  @ApiResponse({ status: 404, description: 'Quiz not found' })
+  getQuizAdminDetails(@Param('id') id: string, @Request() req) {
+    return this.quizzesService.findOneForAdmin(id, req.user.id, req.user.role);
   }
 }

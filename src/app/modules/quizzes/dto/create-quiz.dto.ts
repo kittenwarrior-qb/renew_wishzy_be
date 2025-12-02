@@ -14,63 +14,64 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CreateQuestionDto } from './create-question.dto';
 
 export class CreateQuizDto {
-  @ApiProperty({ 
-    example: 'JavaScript Basics Quiz', 
+  @ApiProperty({
+    example: 'JavaScript Basics Quiz',
     description: 'Title of the quiz',
-    required: true
+    required: true,
   })
   @IsString()
   @IsNotEmpty()
   title: string;
 
   @ApiPropertyOptional({
-    example: 'Test your knowledge of JavaScript fundamentals including variables, functions, and basic syntax.',
+    example:
+      'Test your knowledge of JavaScript fundamentals including variables, functions, and basic syntax.',
     description: 'Detailed description of what the quiz covers',
   })
   @IsString()
   @IsOptional()
   description?: string;
 
-  @ApiPropertyOptional({ 
-    example: true, 
-    description: 'Whether the quiz is publicly visible to all users', 
-    default: true 
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Whether the quiz is publicly visible to all users',
+    default: true,
   })
   @IsBoolean()
   @IsOptional()
   isPublic?: boolean;
 
-  @ApiPropertyOptional({ 
-    example: true, 
-    description: 'Whether the quiz is free to take. If false, a price must be set.', 
-    default: true 
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Whether the quiz is free to take. If false, a price must be set.',
+    default: true,
   })
   @IsBoolean()
   @IsOptional()
   isFree?: boolean;
 
-  @ApiPropertyOptional({ 
-    example: 0, 
-    description: 'Price in VND for taking the quiz (only applicable if isFree is false)', 
-    minimum: 0 
+  @ApiPropertyOptional({
+    example: 0,
+    description: 'Price in VND for taking the quiz (only applicable if isFree is false)',
+    minimum: 0,
   })
   @IsNumber()
   @IsOptional()
   @Min(0)
   price?: number;
 
-  @ApiPropertyOptional({ 
-    example: 30, 
-    description: 'Time limit for completing the quiz in minutes. Leave empty for no time limit.', 
-    minimum: 1 
+  @ApiPropertyOptional({
+    example: 30,
+    description: 'Time limit for completing the quiz in minutes. Leave empty for no time limit.',
+    minimum: 1,
   })
   @IsInt()
   @IsOptional()
   @Min(1)
   timeLimit?: number;
 
-  @ApiProperty({ 
-    type: [CreateQuestionDto], 
+  @ApiProperty({
+    type: [CreateQuestionDto],
     description: 'Array of questions for this quiz. Must contain at least one question.',
     example: [
       {
@@ -80,8 +81,8 @@ export class CreateQuizDto {
           { optionText: 'var, let, or const', isCorrect: true },
           { optionText: 'variable', isCorrect: false },
           { optionText: 'int', isCorrect: false },
-          { optionText: 'string', isCorrect: false }
-        ]
+          { optionText: 'string', isCorrect: false },
+        ],
       },
       {
         questionText: 'Which symbol is used for single-line comments in JavaScript?',
@@ -89,10 +90,10 @@ export class CreateQuizDto {
         answerOptions: [
           { optionText: '//', isCorrect: true },
           { optionText: '#', isCorrect: false },
-          { optionText: '/*', isCorrect: false }
-        ]
-      }
-    ]
+          { optionText: '/*', isCorrect: false },
+        ],
+      },
+    ],
   })
   @IsArray()
   @ValidateNested({ each: true })

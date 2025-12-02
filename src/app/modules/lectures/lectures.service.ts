@@ -139,7 +139,7 @@ export class LecturesService {
   async remove(id: string): Promise<void> {
     const lecture = await this.findOne(id);
     const chapterId = lecture.chapterId;
-    await this.lectureRepository.softDelete(lecture);
+    await this.lectureRepository.remove(lecture);
 
     // Update chapter and course durations after deletion
     await this.updateChapterDuration(chapterId);
