@@ -1,9 +1,10 @@
-import { Controller, Get, Body, Patch, Param, Req } from '@nestjs/common';
+import { Controller, Get, Body, Patch, Param, Req, Post } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { EnrollmentsService } from './enrollments.service';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
 import { UpdateAttributeDto } from './dto/update-attribute.dto';
+import { EnrollFreeCourseDto } from './dto/enroll-free-course.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from 'src/app/entities/user.entity';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -23,6 +24,14 @@ export class EnrollmentsController {
   @Get('my-enrollments')
   async getMyEnrollments(@CurrentUser() user: User) {
     return this.enrollmentsService.findAllEnrollmentOfUser(user.id);
+  }
+
+  @Post('enroll-free')
+  async enrollFreeCourse(
+    @Body() enrollFreeCourseDto: EnrollFreeCourseDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.enrollmentsService.enrollFreeCourse(enrollFreeCourseDto.courseId, user.id);
   }
 
   @Get(':id')
