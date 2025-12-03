@@ -2,19 +2,20 @@ import { IsString, IsNotEmpty, IsBoolean, IsOptional, IsInt } from 'class-valida
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateAnswerOptionDto {
-  @ApiProperty({ 
-    example: 'Paris', 
+  @ApiProperty({
+    example: 'Paris',
     description: 'Text content of the answer option',
-    required: true
+    required: true,
   })
   @IsString()
   @IsNotEmpty()
   optionText: string;
 
-  @ApiProperty({ 
-    example: true, 
-    description: 'Whether this option is the correct answer. Must have at least one correct answer per question.',
-    required: true
+  @ApiProperty({
+    example: true,
+    description:
+      'Whether this option is the correct answer. Must have at least one correct answer per question.',
+    required: true,
   })
   @IsBoolean()
   isCorrect: boolean;

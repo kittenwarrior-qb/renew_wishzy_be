@@ -73,6 +73,7 @@ export class UsersService {
     }
 
     const [users, total] = await queryBuilder
+      .orderBy('user.created_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
@@ -165,6 +166,7 @@ export class UsersService {
     }
 
     const [instructors, total] = await queryBuilder
+      .orderBy('user.created_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
@@ -229,6 +231,7 @@ export class UsersService {
     }
 
     const [students, total] = await queryBuilder
+      .orderBy('user.created_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
@@ -327,6 +330,7 @@ export class UsersService {
     }
 
     const [users, total] = await queryBuilder
+      .orderBy('user.created_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();

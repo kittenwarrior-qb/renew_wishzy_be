@@ -88,6 +88,7 @@ export class EnrollmentsService {
       .leftJoin('enrollment.user', 'user')
       .addSelect(['user.id', 'user.email', 'user.fullName', 'user.avatar'])
       .where('enrollment.userId = :userId', { userId })
+      .orderBy('enrollment.created_at', 'DESC')
       .getMany();
     return enrollments;
   }

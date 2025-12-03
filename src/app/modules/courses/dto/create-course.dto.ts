@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, IsEnum } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, IsEnum, IsBoolean } from 'class-validator';
 import { CourseLevel } from 'src/app/entities/enums/course.enum';
 
 export class CreateCourseDto {
@@ -75,4 +75,13 @@ export class CreateCourseDto {
   @IsString()
   @IsOptional()
   thumbnail?: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'Course status (active/inactive)',
+    required: false,
+  })
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 }

@@ -27,6 +27,9 @@ export class Chapter {
   @Column({ type: 'integer', nullable: true })
   duration?: number;
 
+  @Column({ type: 'integer', nullable: false, name: 'order_index', default: 0 })
+  orderIndex!: number;
+
   @Column({ type: 'uuid', nullable: false, name: 'course_id' })
   courseId!: string;
 

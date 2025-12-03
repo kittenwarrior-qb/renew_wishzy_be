@@ -26,6 +26,8 @@ export class QuizzesService {
   async create(createQuizDto: CreateQuizDto, creatorId: string): Promise<Quiz> {
     const { questions, ...quizData } = createQuizDto;
 
+    console.log(JSON.stringify(createQuizDto));
+
     // Validate questions
     questions.forEach((question, index) => {
       const correctAnswers = question.answerOptions.filter((opt) => opt.isCorrect);
@@ -57,13 +59,17 @@ export class QuizzesService {
       // Create answer options
       for (let j = 0; j < questionData.answerOptions.length; j++) {
         const optionData = questionData.answerOptions[j];
-        const option = this.answerOptionRepository.create({
-          questionId: savedQuestion.id,
-          orderIndex: j,
-          optionText: optionData.optionText,
-          isCorrect: optionData.isCorrect,
-        });
-        await this.answerOptionRepository.save(option);
+        await this.answerOptionRepository
+          .createQueryBuilder()
+          .insert()
+          .into(AnswerOption)
+          .values({
+            questionId: savedQuestion.id,
+            orderIndex: j,
+            optionText: optionData.optionText,
+            isCorrect: optionData.isCorrect,
+          })
+          .execute();
       }
     }
 
@@ -143,23 +149,97 @@ export class QuizzesService {
     });
   }
 
-  async update(id: string, updateQuizDto: UpdateQuizDto, userId: string): Promise<Quiz> {
-    const quiz = await this.findOne(id);
+  async update(
+    id: string,
+    updateQuizDto: UpdateQuizDto,
+    userId: string,
+    userRole: string,
+  ): Promise<Quiz> {
+    // Don't load questions to avoid cascade update issues
+    const quiz = await this.quizRepository.findOne({
+      where: { id },
+      relations: ['creator'],
+    });
 
-    if (quiz.creatorId !== userId) {
+    if (!quiz) {
+      throw new NotFoundException(`Quiz with ID ${id} not found`);
+    }
+
+    // Admin can update any quiz, instructors can only update their own quizzes
+    const isAdmin = userRole === 'admin';
+    const isOwner = quiz.creatorId === userId;
+
+    if (!isAdmin && !isOwner) {
       throw new ForbiddenException('You do not have permission to update this quiz');
     }
 
-    Object.assign(quiz, updateQuizDto);
-    await this.quizRepository.save(quiz);
+    const { questions, ...quizData } = updateQuizDto;
+
+    // Validate questions if provided (same validation as create)
+    if (questions) {
+      questions.forEach((question, index) => {
+        const correctAnswers = question.answerOptions.filter((opt) => opt.isCorrect);
+        if (correctAnswers.length === 0) {
+          throw new BadRequestException(
+            `Question ${index + 1} must have at least one correct answer`,
+          );
+        }
+      });
+
+      // Delete all existing questions (cascade will delete answer options)
+      await this.questionRepository.delete({ quizId: id });
+
+      // Create new questions with answer options (same logic as create)
+      for (let i = 0; i < questions.length; i++) {
+        const questionData = questions[i];
+        const { quizId: _, answerOptions, ...cleanQuestionData } = questionData;
+
+        console.log('Creating question:', { cleanQuestionData, quizId: id, orderIndex: i });
+
+        const question = this.questionRepository.create({
+          questionText: cleanQuestionData.questionText,
+          points: cleanQuestionData.points,
+          quizId: id,
+          orderIndex: i,
+        });
+
+        const savedQuestion = await this.questionRepository.save(question);
+
+        // Create answer options
+        for (let j = 0; j < answerOptions.length; j++) {
+          const optionData = answerOptions[j];
+          await this.answerOptionRepository
+            .createQueryBuilder()
+            .insert()
+            .into(AnswerOption)
+            .values({
+              questionId: savedQuestion.id,
+              orderIndex: j,
+              optionText: optionData.optionText,
+              isCorrect: optionData.isCorrect,
+            })
+            .execute();
+        }
+      }
+    }
+
+    // Update quiz metadata (only update quiz fields, not questions)
+    if (Object.keys(quizData).length > 0) {
+      Object.assign(quiz, quizData);
+      await this.quizRepository.save(quiz);
+    }
 
     return this.findOne(id);
   }
 
-  async remove(id: string, userId: string): Promise<void> {
+  async remove(id: string, userId: string, userRole: string): Promise<void> {
     const quiz = await this.findOne(id);
 
-    if (quiz.creatorId !== userId) {
+    // Admin can delete any quiz, instructors can only delete their own quizzes
+    const isAdmin = userRole === 'admin';
+    const isOwner = quiz.creatorId === userId;
+
+    if (!isAdmin && !isOwner) {
       throw new ForbiddenException('You do not have permission to delete this quiz');
     }
 
@@ -192,5 +272,36 @@ export class QuizzesService {
 
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     return `${baseUrl}/quizzes/${quiz.id}`;
+  }
+
+  async findOneForAdmin(id: string, userId: string, userRole: string): Promise<Quiz> {
+    const quiz = await this.quizRepository.findOne({
+      where: { id },
+      relations: ['creator', 'questions', 'questions.answerOptions'],
+    });
+
+    if (!quiz) {
+      throw new NotFoundException(`Quiz with ID ${id} not found`);
+    }
+
+    // Admin can view any quiz, instructors can only view their own quizzes
+    const isAdmin = userRole === 'admin';
+    const isOwner = quiz.creatorId === userId;
+
+    if (!isAdmin && !isOwner) {
+      throw new ForbiddenException('You do not have permission to view this quiz details');
+    }
+
+    // Sort questions by orderIndex and answer options by orderIndex
+    if (quiz.questions) {
+      quiz.questions.sort((a, b) => a.orderIndex - b.orderIndex);
+      quiz.questions.forEach((question) => {
+        if (question.answerOptions) {
+          question.answerOptions.sort((a, b) => a.orderIndex - b.orderIndex);
+        }
+      });
+    }
+
+    return quiz;
   }
 }

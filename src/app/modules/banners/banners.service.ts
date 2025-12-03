@@ -17,7 +17,9 @@ export class BannersService {
   }
 
   async findAll(): Promise<Banner[]> {
-    return await this.bannerRepository.find();
+    return await this.bannerRepository.find({
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findOne(bannerId: string): Promise<Banner> {

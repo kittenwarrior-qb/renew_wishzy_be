@@ -45,6 +45,7 @@ export class DocumentsService {
       query.andWhere('document.createdBy = :createdBy', { createdBy });
     }
     const [documents, total] = await query
+      .orderBy('document.created_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
