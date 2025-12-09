@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class AddCommentTable1762609604524 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-        CREATE TABLE "comments" (
+        CREATE TABLE IF NOT EXISTS "comments" (
             "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             "content" TEXT NOT NULL,
             "rating" NUMERIC(2,1) NOT NULL,

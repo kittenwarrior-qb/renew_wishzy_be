@@ -2,7 +2,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class CreateDocumentTable1762015613074 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`CREATE TABLE "documents" (
+    await queryRunner.query(`CREATE TABLE IF NOT EXISTS "documents" (
         "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
         "name" VARCHAR(100) NOT NULL,
         "notes" VARCHAR(255),
@@ -17,7 +17,7 @@ export class CreateDocumentTable1762015613074 implements MigrationInterface {
         CONSTRAINT "fk_document_created_by" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE RESTRICT
     )`);
 
-    await queryRunner.query(`CREATE INDEX "idx_document_created_by" ON "documents"("created_by")`);
+    await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_document_created_by" ON "documents"("created_by")`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {

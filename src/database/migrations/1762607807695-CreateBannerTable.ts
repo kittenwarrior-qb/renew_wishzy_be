@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class CreateBannerTable1762607807695 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-        CREATE TABLE "banners" (
+        CREATE TABLE IF NOT EXISTS "banners" (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             title VARCHAR(255) NOT NULL,
             image_url VARCHAR(255) NOT NULL,

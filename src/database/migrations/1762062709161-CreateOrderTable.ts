@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class CreateOrderTable1762062709161 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-        CREATE TABLE "orders" (
+        CREATE TABLE IF NOT EXISTS "orders" (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             voucher_id UUID,
             total_price DECIMAL NOT NULL,
@@ -18,15 +18,15 @@ export class CreateOrderTable1762062709161 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-        CREATE INDEX "idx_orders_id" ON "orders"("id")
+        CREATE INDEX IF NOT EXISTS "idx_orders_id" ON "orders"("id")
     `);
 
     await queryRunner.query(`
-        CREATE INDEX "idx_orders_user_id" ON "orders"("user_id")
+        CREATE INDEX IF NOT EXISTS "idx_orders_user_id" ON "orders"("user_id")
     `);
 
     await queryRunner.query(`
-        CREATE INDEX "idx_orders_voucher_id" ON "orders"("voucher_id")
+        CREATE INDEX IF NOT EXISTS "idx_orders_voucher_id" ON "orders"("voucher_id")
     `);
   }
 

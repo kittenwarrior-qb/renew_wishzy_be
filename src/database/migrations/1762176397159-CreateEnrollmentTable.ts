@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class CreateEnrollmentTable1762176397159 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "enrollments" (
+      `CREATE TABLE IF NOT EXISTS "enrollments" (
             id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
             user_id UUID NOT NULL,
             course_id UUID NOT NULL,
@@ -22,19 +22,19 @@ export class CreateEnrollmentTable1762176397159 implements MigrationInterface {
     );
 
     await queryRunner.query(`
-        CREATE INDEX "idx_enrollments_id" ON "enrollments"("id")
+        CREATE INDEX IF NOT EXISTS "idx_enrollments_id" ON "enrollments"("id")
     `);
 
     await queryRunner.query(`
-        CREATE INDEX "idx_enrollments_user_id" ON "enrollments"("user_id")
+        CREATE INDEX IF NOT EXISTS "idx_enrollments_user_id" ON "enrollments"("user_id")
     `);
 
     await queryRunner.query(`
-        CREATE INDEX "idx_enrollments_course_id" ON "enrollments"("course_id")
+        CREATE INDEX IF NOT EXISTS "idx_enrollments_course_id" ON "enrollments"("course_id")
     `);
 
     await queryRunner.query(`
-        CREATE INDEX "idx_enrollments_detail_order_id" ON "enrollments"("detail_order_id")
+        CREATE INDEX IF NOT EXISTS "idx_enrollments_detail_order_id" ON "enrollments"("detail_order_id")
     `);
   }
 

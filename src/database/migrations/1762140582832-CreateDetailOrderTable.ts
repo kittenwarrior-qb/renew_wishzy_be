@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class CreateDetailOrderTable1762140582832 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "detail_orders" (
+      `CREATE TABLE IF NOT EXISTS "detail_orders" (
         "id" uuid NOT NULL DEFAULT uuid_generate_v4(),
         "course_id" uuid NOT NULL,
         "order_id" uuid NOT NULL,
@@ -18,16 +18,16 @@ export class CreateDetailOrderTable1762140582832 implements MigrationInterface {
     );
 
     await queryRunner.query(
-      `CREATE INDEX "idx_detail_orders_course_id" ON "detail_orders" ("course_id")`,
+      `CREATE INDEX IF NOT EXISTS "idx_detail_orders_course_id" ON "detail_orders" ("course_id")`,
     );
     await queryRunner.query(
-      `CREATE INDEX "idx_detail_orders_order_id" ON "detail_orders" ("order_id")`,
+      `CREATE INDEX IF NOT EXISTS "idx_detail_orders_order_id" ON "detail_orders" ("order_id")`,
     );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "idx_detail_orders_course_id"`);
-    await queryRunner.query(`DROP INDEX "idx_detail_orders_order_id"`);
-    await queryRunner.query(`DROP TABLE "detail_orders"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "idx_detail_orders_course_id"`);
+    await queryRunner.query(`DROP INDEX IF EXISTS "idx_detail_orders_order_id"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "detail_orders"`);
   }
 }

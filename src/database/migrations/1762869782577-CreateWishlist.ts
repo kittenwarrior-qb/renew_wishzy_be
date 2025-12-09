@@ -4,7 +4,7 @@ export class CreateWishlist1762869782577 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Create wishlist table
     await queryRunner.query(
-      `CREATE TABLE "wishlist" (
+      `CREATE TABLE IF NOT EXISTS "wishlist" (
         "id" uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
         "user_id" uuid NOT NULL,
         "courses" JSONB,
@@ -15,7 +15,7 @@ export class CreateWishlist1762869782577 implements MigrationInterface {
     );
 
     // Create index on user_id for better query performance
-    await queryRunner.query(`CREATE INDEX "idx_wishlist_user_id" ON "wishlist"("user_id")`);
+    await queryRunner.query(`CREATE INDEX IF NOT EXISTS "idx_wishlist_user_id" ON "wishlist"("user_id")`);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
