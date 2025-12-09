@@ -101,7 +101,7 @@ export class ChaptersService {
             duration: raw.lecture_duration,
             isPreview: raw.is_preview,
             orderIndex: raw.order_index,
-            fileUrl: raw.is_preview ? raw.file_url : null,
+            fileUrl: raw.file_url, // Always return fileUrl, not just for preview
           }))
           .sort((a, b) => a.orderIndex - b.orderIndex); // Sort lectures by orderIndex ASC
 
