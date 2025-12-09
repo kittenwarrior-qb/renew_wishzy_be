@@ -554,7 +554,7 @@ export class StatService {
       FROM users u
       LEFT JOIN courses c ON c.created_by = u.id AND c.deleted_at IS NULL
       LEFT JOIN enrollments e ON e.course_id = c.id
-      LEFT JOIN comments cm ON cm.course_id = c.id
+      LEFT JOIN feedbacks cm ON cm.course_id = c.id
       LEFT JOIN categories cat ON cat.id = c.category_id
       WHERE u.role = $1
       GROUP BY u.id, u.full_name, u.email, u.avatar, u.role

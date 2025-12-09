@@ -47,6 +47,7 @@ export class FeedbacksService {
     const queryBuilder = this.feedbackRepository
       .createQueryBuilder('feedback')
       .leftJoinAndSelect('feedback.user', 'user')
+      .leftJoinAndSelect('feedback.course', 'course')
       .orderBy('feedback.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
@@ -76,6 +77,7 @@ export class FeedbacksService {
     const queryBuilder = this.feedbackRepository
       .createQueryBuilder('feedback')
       .leftJoinAndSelect('feedback.user', 'user')
+      .leftJoinAndSelect('feedback.course', 'course')
       .where('feedback.courseId = :courseId', { courseId })
       .orderBy('feedback.createdAt', 'DESC')
       .skip((page - 1) * limit)
@@ -95,7 +97,10 @@ export class FeedbacksService {
   }
 
   async findOne(feedbackId: string): Promise<Feedback> {
-    const feedback = await this.feedbackRepository.findOne({ where: { id: feedbackId } });
+    const feedback = await this.feedbackRepository.findOne({ 
+      where: { id: feedbackId },
+      relations: ['user', 'course'],
+    });
     if (!feedback) {
       throw new BadRequestException(`Feedback with ID ${feedbackId} not found`);
     }
