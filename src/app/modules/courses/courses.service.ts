@@ -43,7 +43,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
-      .loadRelationCountAndMap('course.reviewCount', 'course.comments');
+      .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks');
     if (categoryId) {
       queryBuilder.andWhere('course.categoryId = :categoryId', { categoryId });
     }
@@ -100,7 +100,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email', 'creator.avatar'])
       .leftJoinAndSelect('course.chapters', 'chapter')
-      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
+      .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks')
       .where('course.id = :id', { id })
       .getOne();
 
@@ -137,7 +137,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
-      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
+      .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks')
       .where('course.status = :status', { status: true })
       .orderBy('course.averageRating', 'DESC')
       .addOrderBy('course.numberOfStudents', 'DESC')
@@ -168,7 +168,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
-      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
+      .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks')
       .where('course.createdBy = :instructorId', { instructorId })
       .orderBy('course.createdAt', 'DESC')
       .skip((page - 1) * limit)
@@ -209,7 +209,7 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
-      .loadRelationCountAndMap('course.reviewCount', 'course.comments')
+      .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks')
       .where('course.status = :status', { status: true })
       .andWhere("course.sale_info->>'saleStartDate' IS NOT NULL")
       .andWhere("course.sale_info->>'saleEndDate' IS NOT NULL")
@@ -275,7 +275,7 @@ export class CoursesService {
         UPDATE courses co
         SET average_rating = COALESCE((
           SELECT ROUND(AVG(c.rating)::numeric, 2)
-          FROM comments c
+          FROM feedbacks c
           WHERE c.course_id = co.id
         ), 0)
         WHERE co.deleted_at IS NULL
@@ -286,7 +286,7 @@ export class CoursesService {
         UPDATE courses co
         SET rating = COALESCE((
           SELECT COUNT(*)
-          FROM comments c
+          FROM feedbacks c
           WHERE c.course_id = co.id
         ), 0)
         WHERE co.deleted_at IS NULL

@@ -8,15 +8,17 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
-import { Lecture } from './lecture.entity';
 
-@Entity('comments')
-export class Comment {
+@Entity('feedbacks')
+export class Feedback {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column({ type: 'text' })
   content!: string;
+
+  @Column({ type: 'numeric', name: 'rating' })
+  rating!: number;
 
   @Column({ type: 'int', default: 0 })
   like!: number;
@@ -27,11 +29,8 @@ export class Comment {
   @Column({ type: 'uuid', name: 'user_id' })
   userId!: string;
 
-  @Column({ type: 'uuid', name: 'lecture_id' })
-  lectureId!: string;
-
-  @Column({ type: 'uuid', name: 'parent_id', nullable: true })
-  parentId?: string;
+  @Column({ type: 'uuid', name: 'course_id' })
+  courseId!: string;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
@@ -43,11 +42,7 @@ export class Comment {
   @JoinColumn({ name: 'user_id' })
   user!: User;
 
-  @ManyToOne(() => Lecture)
-  @JoinColumn({ name: 'lecture_id' })
-  lecture!: Lecture;
-
-  @ManyToOne(() => Comment, { nullable: true })
-  @JoinColumn({ name: 'parent_id' })
-  parent?: Comment;
+  @ManyToOne('Course', 'feedbacks')
+  @JoinColumn({ name: 'course_id' })
+  course!: any;
 }

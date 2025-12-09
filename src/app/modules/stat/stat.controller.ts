@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { StatService } from './stat.service';
 import { HotCoursesQueryDto } from './dto/hot-courses-query.dto';
@@ -6,6 +6,10 @@ import { HotCoursesResponseDto } from './dto/hot-courses-response.dto';
 import { RevenueQueryDto } from './dto/revenue-query.dto';
 import { RevenueResponseDto } from './dto/revenue-response.dto';
 import { InstructorStatsResponseDto } from './dto/instructor-stats-response.dto';
+import { TopStudentsQueryDto } from './dto/top-students-query.dto';
+import { TopStudentsResponseDto } from './dto/top-students-response.dto';
+import { TopInstructorsQueryDto } from './dto/top-instructors-query.dto';
+import { TopInstructorsResponseDto } from './dto/top-instructors-response.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { User, UserRole } from '../../entities/user.entity';
@@ -67,4 +71,51 @@ export class StatController {
     return this.statService.getInstructorStats(user.id);
   }
 
+  @Get('top-students')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ 
+    summary: 'Lấy danh sách học viên hàng đầu',
+    description: 'Thống kê các học viên theo chi tiêu hoặc số khóa học đã đăng ký (chỉ dành cho Admin)'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Lấy danh sách học viên hàng đầu thành công',
+    type: TopStudentsResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized - Token không hợp lệ'
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Chỉ dành cho Admin'
+  })
+  async getTopStudents(@Query() query: TopStudentsQueryDto): Promise<TopStudentsResponseDto> {
+    return this.statService.getTopStudents(query);
+  }
+
+  @Get('top-instructors')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ 
+    summary: 'Lấy danh sách giảng viên hàng đầu',
+    description: 'Thống kê các giảng viên theo rating, số học viên, hoặc số khóa học (chỉ dành cho Admin)'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Lấy danh sách giảng viên hàng đầu thành công',
+    type: TopInstructorsResponseDto
+  })
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized - Token không hợp lệ'
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Chỉ dành cho Admin'
+  })
+  async getTopInstructors(@Query() query: TopInstructorsQueryDto): Promise<TopInstructorsResponseDto> {
+    return this.statService.getTopInstructors(query);
+  }
+
 }
+

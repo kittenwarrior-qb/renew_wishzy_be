@@ -5,8 +5,8 @@ import { Enrollment } from '../../entities/enrollment.entity';
 import { Course } from '../../entities/course.entity';
 import { OrderDetail } from '../../entities/order-detail.entity';
 import { Order, OrderStatus } from '../../entities/order.entity';
-import { Comment } from '../../entities/comment.entity';
-import { User } from '../../entities/user.entity';
+import { Feedback } from '../../entities/feedback.entity';
+import { User, UserRole } from '../../entities/user.entity';
 import { HotCoursesQueryDto } from './dto/hot-courses-query.dto';
 import { HotCoursesResponseDto, HotCourseItemDto } from './dto/hot-courses-response.dto';
 import { RevenueQueryDto, RevenueMode } from './dto/revenue-query.dto';
@@ -16,6 +16,10 @@ import {
   InstructorCourseDto,
   RecentCommentDto,
 } from './dto/instructor-stats-response.dto';
+import { TopStudentsQueryDto, TopStudentsSortBy } from './dto/top-students-query.dto';
+import { TopStudentsResponseDto, TopStudentItemDto } from './dto/top-students-response.dto';
+import { TopInstructorsQueryDto, TopInstructorsSortBy } from './dto/top-instructors-query.dto';
+import { TopInstructorsResponseDto, TopInstructorItemDto } from './dto/top-instructors-response.dto';
 
 @Injectable()
 export class StatService {
@@ -28,8 +32,8 @@ export class StatService {
     private orderDetailRepository: Repository<OrderDetail>,
     @InjectRepository(Order)
     private orderRepository: Repository<Order>,
-    @InjectRepository(Comment)
-    private commentRepository: Repository<Comment>,
+    @InjectRepository(Feedback)
+    private feedbackRepository: Repository<Feedback>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {}
@@ -345,17 +349,17 @@ export class StatService {
     );
     const totalCourses = parseInt(courseData[0]?.totalCourses || '0');
 
-    // Đếm tổng số comments
-    const commentData = await this.commentRepository.query(
+    // Đếm tổng số feedbacks
+    const feedbackData = await this.feedbackRepository.query(
       `
-      SELECT COUNT(cm.id) as "totalComments"
-      FROM comments cm
-      INNER JOIN courses c ON c.id = cm.course_id
+      SELECT COUNT(fb.id) as "totalFeedbacks"
+      FROM feedbacks fb
+      INNER JOIN courses c ON c.id = fb.course_id
       WHERE c.created_by = $1
       `,
       [instructorId],
     );
-    const totalComments = parseInt(commentData[0]?.totalComments || '0');
+    const totalFeedbacks = parseInt(feedbackData[0]?.totalFeedbacks || '0');
 
     // Tính rating trung bình
     const ratingData = await this.courseRepository.query(
@@ -414,43 +418,173 @@ export class StatService {
       commentCount: parseInt(course.commentCount || '0'),
     }));
 
-    // Lấy comments gần đây
-    const recentCommentsData = await this.commentRepository.query(
+    // Lấy feedbacks gần đây
+    const recentFeedbacksData = await this.feedbackRepository.query(
       `
       SELECT 
-        cm.id as "commentId",
-        cm.content,
-        cm.rating,
-        cm.created_at as "createdAt",
+        fb.id as "feedbackId",
+        fb.content,
+        fb.rating,
+        fb.created_at as "createdAt",
         u.full_name as "studentName",
         c.name as "courseName"
-      FROM comments cm
-      INNER JOIN courses c ON c.id = cm.course_id
-      LEFT JOIN users u ON u.id = cm.user_id
+      FROM feedbacks fb
+      INNER JOIN courses c ON c.id = fb.course_id
+      LEFT JOIN users u ON u.id = fb.user_id
       WHERE c.created_by = $1
-      ORDER BY cm.created_at DESC
+      ORDER BY fb.created_at DESC
       LIMIT 10
       `,
       [instructorId],
     );
 
-    const recentComments: RecentCommentDto[] = recentCommentsData.map((comment: any) => ({
-      commentId: comment.commentId,
-      content: comment.content,
-      studentName: comment.studentName || 'Unknown',
-      courseName: comment.courseName || 'Unknown',
-      rating: parseFloat(comment.rating || '0'),
-      createdAt: comment.createdAt,
+    const recentFeedbacks: RecentCommentDto[] = recentFeedbacksData.map((feedback: any) => ({
+      commentId: feedback.feedbackId,
+      content: feedback.content,
+      studentName: feedback.studentName || 'Unknown',
+      courseName: feedback.courseName || 'Unknown',
+      rating: parseFloat(feedback.rating || '0'),
+      createdAt: feedback.createdAt,
     }));
 
     return {
       totalCourses,
       totalStudents,
       totalRevenue,
-      totalComments,
+      totalComments: totalFeedbacks,
       overallRating: Math.round(overallRating * 10) / 10,
       courses,
-      recentComments,
+      recentComments: recentFeedbacks,
     };
   }
+
+  /**
+   * Lấy danh sách học viên hàng đầu
+   * @param query - Query parameters với limit và sortBy
+   * @returns Danh sách học viên với thống kê chi tiêu và số khóa học
+   */
+  async getTopStudents(query: TopStudentsQueryDto): Promise<TopStudentsResponseDto> {
+    const { limit = 10, sortBy = TopStudentsSortBy.TOTAL_SPENT } = query;
+
+    // Xác định ORDER BY dựa trên sortBy
+    const orderByField = sortBy === TopStudentsSortBy.TOTAL_SPENT 
+      ? '"totalSpent"' 
+      : '"coursesEnrolled"';
+
+    // Query raw SQL để tránh các vấn đề với TypeORM joins
+    const studentsData = await this.userRepository.query(
+      `
+      SELECT 
+        u.id,
+        u.full_name as name,
+        u.email,
+        u.avatar,
+        COUNT(DISTINCT e.id) as "coursesEnrolled",
+        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN o.total_price ELSE 0 END), 0) as "totalSpent",
+        MAX(e.created_at) as "lastActive"
+      FROM users u
+      LEFT JOIN enrollments e ON e.user_id = u.id
+      LEFT JOIN orders o ON o.user_id = u.id
+      WHERE u.role = $1
+      GROUP BY u.id, u.full_name, u.email, u.avatar
+      ORDER BY ${orderByField} DESC
+      LIMIT $2
+      `,
+      [UserRole.USER, limit],
+    );
+
+    // Đếm tổng số học viên
+    const totalData = await this.userRepository.query(
+      `SELECT COUNT(*) as total FROM users WHERE role = $1`,
+      [UserRole.USER],
+    );
+    const total = parseInt(totalData[0]?.total || '0');
+
+    // Map kết quả sang DTO
+    const data: TopStudentItemDto[] = studentsData.map((student: any) => ({
+      id: student.id,
+      name: student.name || 'Unknown',
+      email: student.email,
+      avatar: student.avatar,
+      coursesEnrolled: parseInt(student.coursesEnrolled || '0'),
+      totalSpent: parseFloat(student.totalSpent || '0'),
+      lastActive: student.lastActive || null,
+    }));
+
+    return { data, total };
+  }
+
+  /**
+   * Lấy danh sách giảng viên hàng đầu
+   * @param query - Query parameters với limit và sortBy
+   * @returns Danh sách giảng viên với thống kê rating, courses, students
+   */
+  async getTopInstructors(query: TopInstructorsQueryDto): Promise<TopInstructorsResponseDto> {
+    const { limit = 10, sortBy = TopInstructorsSortBy.RATING } = query;
+
+    // Xác định ORDER BY dựa trên sortBy
+    let orderByField: string;
+    switch (sortBy) {
+      case TopInstructorsSortBy.RATING:
+        orderByField = 'rating';
+        break;
+      case TopInstructorsSortBy.STUDENTS:
+        orderByField = 'students';
+        break;
+      case TopInstructorsSortBy.COURSES:
+        orderByField = 'courses';
+        break;
+      default:
+        orderByField = 'rating';
+    }
+
+    // Query raw SQL để lấy thống kê giảng viên
+    const instructorsData = await this.userRepository.query(
+      `
+      SELECT 
+        u.id,
+        u.full_name as "fullName",
+        u.email,
+        u.avatar,
+        u.role,
+        COALESCE(AVG(cm.rating), 0) as rating,
+        COUNT(DISTINCT c.id) as courses,
+        COUNT(DISTINCT e.user_id) as students,
+        ARRAY_REMOVE(ARRAY_AGG(DISTINCT cat.name), NULL) as specialties
+      FROM users u
+      LEFT JOIN courses c ON c.created_by = u.id AND c.deleted_at IS NULL
+      LEFT JOIN enrollments e ON e.course_id = c.id
+      LEFT JOIN comments cm ON cm.course_id = c.id
+      LEFT JOIN categories cat ON cat.id = c.category_id
+      WHERE u.role = $1
+      GROUP BY u.id, u.full_name, u.email, u.avatar, u.role
+      ORDER BY ${orderByField} DESC
+      LIMIT $2
+      `,
+      [UserRole.INSTRUCTOR, limit],
+    );
+
+    // Đếm tổng số giảng viên
+    const totalData = await this.userRepository.query(
+      `SELECT COUNT(*) as total FROM users WHERE role = $1`,
+      [UserRole.INSTRUCTOR],
+    );
+    const total = parseInt(totalData[0]?.total || '0');
+
+    // Map kết quả sang DTO
+    const data: TopInstructorItemDto[] = instructorsData.map((instructor: any) => ({
+      id: instructor.id,
+      fullName: instructor.fullName || 'Unknown',
+      email: instructor.email,
+      avatar: instructor.avatar,
+      role: instructor.role,
+      rating: Math.round(parseFloat(instructor.rating || '0') * 10) / 10,
+      courses: parseInt(instructor.courses || '0'),
+      students: parseInt(instructor.students || '0'),
+      specialties: instructor.specialties || [],
+    }));
+
+    return { data, total };
+  }
 }
+

@@ -21,6 +21,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { EnrollmentsModule } from './modules/enrollments/enrollments.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { BannersModule } from './modules/banners/banners.module';
+import { FeedbacksModule } from './modules/feedbacks/feedbacks.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { QuizzesModule } from './modules/quizzes/quizzes.module';
@@ -88,6 +89,7 @@ import { StatModule } from './modules/stat/stat.module';
     EnrollmentsModule,
     UploadsModule,
     BannersModule,
+    FeedbacksModule,
     CommentsModule,
     WishlistModule,
     QuizzesModule,

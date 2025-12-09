@@ -17,7 +17,7 @@ import { User } from './user.entity';
 import { CourseLevel, SaleType } from './enums/course.enum';
 import { ApiHideProperty } from '@nestjs/swagger';
 import { Chapter } from './chapter.entity';
-import { Comment } from './comment.entity';
+import { Feedback } from './feedback.entity';
 
 export interface SaleInfo {
   saleType?: SaleType;
@@ -101,8 +101,8 @@ export class Course {
   chapters?: Chapter[];
 
   @ApiHideProperty()
-  @OneToMany('Comment', 'course')
-  comments?: Comment[];
+  @OneToMany(() => Feedback, (feedback) => feedback.course)
+  feedbacks?: Feedback[];
 
   @BeforeInsert()
   @BeforeUpdate()

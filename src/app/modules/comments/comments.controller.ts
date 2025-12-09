@@ -24,26 +24,11 @@ export class CommentsController {
   @Post()
   @ApiOperation({
     summary: 'Create a new comment',
-    description: 'Create a new comment for a course or lesson. Requires authentication.',
+    description: 'Create a new comment on a lecture. Supports replies via parentId.',
   })
   @ApiResponse({
     status: 201,
     description: 'Comment created successfully',
-    schema: {
-      example: {
-        message: 'Comment created successfully',
-        id: 'uuid',
-        content: 'Great course!',
-        userId: 'uuid',
-        courseId: 'uuid',
-        lessonId: 'uuid',
-        parentId: null,
-        likes: 0,
-        dislikes: 0,
-        createdAt: '2025-11-14T10:00:00.000Z',
-        updatedAt: '2025-11-14T10:00:00.000Z',
-      },
-    },
   })
   @ApiResponse({ status: 400, description: 'Bad request - Invalid input data' })
   @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
@@ -59,41 +44,12 @@ export class CommentsController {
   @Public()
   @ApiOperation({
     summary: 'Get all comments',
-    description:
-      'Retrieve a paginated list of comments with optional filters (courseId, lessonId, parentId)',
+    description: 'Retrieve a paginated list of comments with optional filters',
   })
   @ApiResponse({
     status: 200,
     description: 'Comments retrieved successfully',
-    schema: {
-      example: {
-        message: 'Comments retrieved successfully',
-        data: [
-          {
-            id: 'uuid',
-            content: 'Great course!',
-            userId: 'uuid',
-            courseId: 'uuid',
-            lessonId: null,
-            parentId: null,
-            likes: 5,
-            dislikes: 0,
-            createdAt: '2025-11-14T10:00:00.000Z',
-            updatedAt: '2025-11-14T10:00:00.000Z',
-            user: {
-              id: 'uuid',
-              name: 'John Doe',
-              avatar: 'url',
-            },
-          },
-        ],
-        total: 100,
-        page: 1,
-        limit: 10,
-      },
-    },
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid filter parameters' })
   async findAll(@Query() filterDto: FilterCommentDto) {
     const comments = await this.commentsService.findAll(filterDto);
     return {
@@ -106,38 +62,15 @@ export class CommentsController {
   @Public()
   @ApiOperation({
     summary: 'Get a comment by ID',
-    description:
-      'Retrieve detailed information about a specific comment including user details and replies',
+    description: 'Retrieve detailed information about a specific comment',
   })
   @ApiParam({
     name: 'commentId',
     description: 'The unique identifier of the comment',
-    example: 'uuid-string',
   })
   @ApiResponse({
     status: 200,
     description: 'Comment retrieved successfully',
-    schema: {
-      example: {
-        message: 'Comment retrieved successfully',
-        id: 'uuid',
-        content: 'Great course!',
-        userId: 'uuid',
-        courseId: 'uuid',
-        lessonId: null,
-        parentId: null,
-        likes: 5,
-        dislikes: 0,
-        createdAt: '2025-11-14T10:00:00.000Z',
-        updatedAt: '2025-11-14T10:00:00.000Z',
-        user: {
-          id: 'uuid',
-          name: 'John Doe',
-          avatar: 'url',
-        },
-        replies: [],
-      },
-    },
   })
   @ApiResponse({ status: 404, description: 'Comment not found' })
   async findOne(@Param('commentId') commentId: string) {
@@ -148,38 +81,41 @@ export class CommentsController {
     };
   }
 
+  @Get(':commentId/replies')
+  @Public()
+  @ApiOperation({
+    summary: 'Get replies to a comment',
+    description: 'Retrieve all replies to a specific comment',
+  })
+  @ApiParam({
+    name: 'commentId',
+    description: 'The unique identifier of the parent comment',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Replies retrieved successfully',
+  })
+  async getReplies(@Param('commentId') commentId: string) {
+    const replies = await this.commentsService.getReplies(commentId);
+    return {
+      message: 'Replies retrieved successfully',
+      items: replies,
+    };
+  }
+
   @Put(':commentId')
   @ApiOperation({
     summary: 'Update a comment',
-    description:
-      'Update the content of an existing comment. Only the comment owner can update it. Requires authentication.',
+    description: 'Update the content of an existing comment. Only the comment owner can update it.',
   })
   @ApiParam({
     name: 'commentId',
     description: 'The unique identifier of the comment to update',
-    example: 'uuid-string',
   })
   @ApiResponse({
     status: 200,
     description: 'Comment updated successfully',
-    schema: {
-      example: {
-        message: 'Comment updated successfully',
-        id: 'uuid',
-        content: 'Updated comment content',
-        userId: 'uuid',
-        courseId: 'uuid',
-        lessonId: null,
-        parentId: null,
-        likes: 5,
-        dislikes: 0,
-        createdAt: '2025-11-14T10:00:00.000Z',
-        updatedAt: '2025-11-14T11:00:00.000Z',
-      },
-    },
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid input data' })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
   @ApiResponse({ status: 403, description: 'Forbidden - Not the comment owner' })
   @ApiResponse({ status: 404, description: 'Comment not found' })
   async update(
@@ -197,24 +133,16 @@ export class CommentsController {
   @Patch(':commentId/like')
   @ApiOperation({
     summary: 'Like a comment',
-    description: 'Increment the like count for a specific comment. Requires authentication.',
+    description: 'Increment the like count for a specific comment.',
   })
   @ApiParam({
     name: 'commentId',
     description: 'The unique identifier of the comment to like',
-    example: 'uuid-string',
   })
   @ApiResponse({
     status: 200,
     description: 'Comment liked successfully',
-    schema: {
-      example: {
-        message: 'Comment liked successfully',
-      },
-    },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
-  @ApiResponse({ status: 404, description: 'Comment not found' })
   async like(@Param('commentId') commentId: string) {
     await this.commentsService.like(commentId);
     return {
@@ -225,24 +153,16 @@ export class CommentsController {
   @Patch(':commentId/dislike')
   @ApiOperation({
     summary: 'Dislike a comment',
-    description: 'Increment the dislike count for a specific comment. Requires authentication.',
+    description: 'Increment the dislike count for a specific comment.',
   })
   @ApiParam({
     name: 'commentId',
     description: 'The unique identifier of the comment to dislike',
-    example: 'uuid-string',
   })
   @ApiResponse({
     status: 200,
     description: 'Comment disliked successfully',
-    schema: {
-      example: {
-        message: 'Comment disliked successfully',
-      },
-    },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
-  @ApiResponse({ status: 404, description: 'Comment not found' })
   async dislike(@Param('commentId') commentId: string) {
     await this.commentsService.dislike(commentId);
     return {
@@ -253,23 +173,16 @@ export class CommentsController {
   @Delete(':commentId')
   @ApiOperation({
     summary: 'Delete a comment',
-    description: 'Delete a comment. Only the comment owner can delete it. Requires authentication.',
+    description: 'Delete a comment. Only the comment owner can delete it.',
   })
   @ApiParam({
     name: 'commentId',
     description: 'The unique identifier of the comment to delete',
-    example: 'uuid-string',
   })
   @ApiResponse({
     status: 200,
     description: 'Comment deleted successfully',
-    schema: {
-      example: {
-        message: 'Comment deleted successfully',
-      },
-    },
   })
-  @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
   @ApiResponse({ status: 403, description: 'Forbidden - Not the comment owner' })
   @ApiResponse({ status: 404, description: 'Comment not found' })
   async remove(@Param('commentId') commentId: string, @CurrentUser() user: User) {
@@ -279,74 +192,40 @@ export class CommentsController {
     };
   }
 
-  @Get('course/:courseId')
+  @Get('lecture/:lectureId')
   @Public()
   @ApiOperation({
-    summary: 'Get all comments for a course',
-    description:
-      'Retrieve a paginated list of all comments for a specific course. Public endpoint.',
+    summary: 'Get all comments for a lecture',
+    description: 'Retrieve a paginated list of all comments for a specific lecture, including replies.',
   })
   @ApiParam({
-    name: 'courseId',
-    description: 'The unique identifier of the course',
-    example: 'uuid-string',
+    name: 'lectureId',
+    description: 'The unique identifier of the lecture',
   })
   @ApiQuery({
     name: 'page',
     required: false,
     type: Number,
     description: 'Page number (default: 1)',
-    example: 1,
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
     description: 'Number of items per page (default: 10)',
-    example: 10,
   })
   @ApiResponse({
     status: 200,
-    description: 'Course comments retrieved successfully',
-    schema: {
-      example: {
-        message: 'Course comments retrieved successfully',
-        items: [
-          {
-            id: 'uuid',
-            content: 'Great course!',
-            rating: 5,
-            like: 10,
-            dislike: 0,
-            userId: 'uuid',
-            courseId: 'uuid',
-            createdAt: '2025-11-14T10:00:00.000Z',
-            updatedAt: '2025-11-14T10:00:00.000Z',
-            user: {
-              id: 'uuid',
-              fullName: 'John Doe',
-              avatar: 'url',
-            },
-          },
-        ],
-        pagination: {
-          totalPage: 10,
-          totalItems: 100,
-          currentPage: 1,
-          itemsPerPage: 10,
-        },
-      },
-    },
+    description: 'Lecture comments retrieved successfully',
   })
-  @ApiResponse({ status: 400, description: 'Bad request - Invalid course ID' })
-  async findByCourse(
-    @Param('courseId') courseId: string,
+  async findByLecture(
+    @Param('lectureId') lectureId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
   ) {
-    const result = await this.commentsService.findByCourse(courseId, Number(page), Number(limit));
+    const result = await this.commentsService.findByLecture(lectureId, Number(page), Number(limit));
     return {
-      message: 'Course comments retrieved successfully',
+      message: 'Lecture comments retrieved successfully',
       ...result,
     };
   }
