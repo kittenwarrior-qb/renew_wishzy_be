@@ -36,20 +36,59 @@ export class RenameCommentsToFeedbacks1765000000000 implements MigrationInterfac
       // Only comments exists, rename it to feedbacks
       await queryRunner.query(`ALTER TABLE "comments" RENAME TO "feedbacks"`);
       
-      // Try to rename constraints (may not exist with exact names)
-      try {
+      // Check and rename constraints only if they exist
+      const userConstraintExists = await queryRunner.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.table_constraints 
+          WHERE table_schema = 'public' 
+          AND table_name = 'feedbacks'
+          AND constraint_name = 'fk_comments_user'
+        );
+      `);
+      
+      if (userConstraintExists[0].exists) {
         await queryRunner.query(`
           ALTER TABLE "feedbacks" 
           RENAME CONSTRAINT "fk_comments_user" TO "fk_feedbacks_user"
         `);
-      } catch (e) { /* Constraint may not exist */ }
+      }
       
-      try {
+      const courseConstraintExists = await queryRunner.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.table_constraints 
+          WHERE table_schema = 'public' 
+          AND table_name = 'feedbacks'
+          AND constraint_name = 'fk_comments_course'
+        );
+      `);
+      
+      if (courseConstraintExists[0].exists) {
         await queryRunner.query(`
           ALTER TABLE "feedbacks" 
           RENAME CONSTRAINT "fk_comments_course" TO "fk_feedbacks_course"
         `);
-      } catch (e) { /* Constraint may not exist */ }
+      }
+
+      // Rename indexes if they exist
+      const indexesToRename = [
+        { old: 'idx_comments_user', new: 'idx_feedbacks_user' },
+        { old: 'idx_comments_course', new: 'idx_feedbacks_course' },
+        { old: 'idx_comments_parent', new: 'idx_feedbacks_parent' }
+      ];
+
+      for (const { old: oldName, new: newName } of indexesToRename) {
+        const indexExists = await queryRunner.query(`
+          SELECT EXISTS (
+            SELECT FROM pg_indexes 
+            WHERE schemaname = 'public' 
+            AND indexname = '${oldName}'
+          );
+        `);
+        
+        if (indexExists[0].exists) {
+          await queryRunner.query(`ALTER INDEX "${oldName}" RENAME TO "${newName}"`);
+        }
+      }
     }
   }
 
@@ -66,20 +105,59 @@ export class RenameCommentsToFeedbacks1765000000000 implements MigrationInterfac
     if (feedbacksExists[0].exists) {
       await queryRunner.query(`ALTER TABLE "feedbacks" RENAME TO "comments"`);
       
-      try {
+      // Check and rename constraints only if they exist
+      const userConstraintExists = await queryRunner.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.table_constraints 
+          WHERE table_schema = 'public' 
+          AND table_name = 'comments'
+          AND constraint_name = 'fk_feedbacks_user'
+        );
+      `);
+      
+      if (userConstraintExists[0].exists) {
         await queryRunner.query(`
           ALTER TABLE "comments" 
           RENAME CONSTRAINT "fk_feedbacks_user" TO "fk_comments_user"
         `);
-      } catch (e) { /* Constraint may not exist */ }
+      }
       
-      try {
+      const courseConstraintExists = await queryRunner.query(`
+        SELECT EXISTS (
+          SELECT FROM information_schema.table_constraints 
+          WHERE table_schema = 'public' 
+          AND table_name = 'comments'
+          AND constraint_name = 'fk_feedbacks_course'
+        );
+      `);
+      
+      if (courseConstraintExists[0].exists) {
         await queryRunner.query(`
           ALTER TABLE "comments" 
           RENAME CONSTRAINT "fk_feedbacks_course" TO "fk_comments_course"
         `);
-      } catch (e) { /* Constraint may not exist */ }
+      }
+
+      // Rename indexes back if they exist
+      const indexesToRename = [
+        { old: 'idx_feedbacks_user', new: 'idx_comments_user' },
+        { old: 'idx_feedbacks_course', new: 'idx_comments_course' },
+        { old: 'idx_feedbacks_parent', new: 'idx_comments_parent' }
+      ];
+
+      for (const { old: oldName, new: newName } of indexesToRename) {
+        const indexExists = await queryRunner.query(`
+          SELECT EXISTS (
+            SELECT FROM pg_indexes 
+            WHERE schemaname = 'public' 
+            AND indexname = '${oldName}'
+          );
+        `);
+        
+        if (indexExists[0].exists) {
+          await queryRunner.query(`ALTER INDEX "${oldName}" RENAME TO "${newName}"`);
+        }
+      }
     }
   }
 }
-
