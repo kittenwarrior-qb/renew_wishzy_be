@@ -7,58 +7,18 @@ import { UserAnswer } from '../../app/entities/user-answer.entity';
 import { User } from '../../app/entities/user.entity';
 import { AttemptStatus } from '../../app/entities/enums/attempt-status.enum';
 
-// Quiz topics and templates
+// Quiz topics - 10 quizzes with descriptions
 const quizTopics = [
-  { title: 'JavaScript Fundamentals', category: 'Programming' },
-  { title: 'TypeScript Advanced', category: 'Programming' },
-  { title: 'React Hooks Deep Dive', category: 'Frontend' },
-  { title: 'Node.js Best Practices', category: 'Backend' },
-  { title: 'Database Design Principles', category: 'Database' },
-  { title: 'RESTful API Design', category: 'Backend' },
-  { title: 'CSS Grid & Flexbox', category: 'Frontend' },
-  { title: 'Git Version Control', category: 'DevOps' },
-  { title: 'Docker Containerization', category: 'DevOps' },
-  { title: 'AWS Cloud Services', category: 'Cloud' },
-  { title: 'Python Data Structures', category: 'Programming' },
-  { title: 'Machine Learning Basics', category: 'AI/ML' },
-  { title: 'SQL Query Optimization', category: 'Database' },
-  { title: 'GraphQL Fundamentals', category: 'Backend' },
-  { title: 'Vue.js Composition API', category: 'Frontend' },
-  { title: 'MongoDB Aggregation', category: 'Database' },
-  { title: 'Kubernetes Orchestration', category: 'DevOps' },
-  { title: 'Security Best Practices', category: 'Security' },
-  { title: 'Microservices Architecture', category: 'Architecture' },
-  { title: 'Testing with Jest', category: 'Testing' },
-  { title: 'Redux State Management', category: 'Frontend' },
-  { title: 'Express.js Middleware', category: 'Backend' },
-  { title: 'HTML5 Semantic Tags', category: 'Frontend' },
-  { title: 'Linux Command Line', category: 'DevOps' },
-  { title: 'Agile Methodology', category: 'Management' },
-  { title: 'Design Patterns', category: 'Architecture' },
-  { title: 'Web Performance', category: 'Optimization' },
-  { title: 'OAuth 2.0 Authentication', category: 'Security' },
-  { title: 'WebSocket Real-time', category: 'Backend' },
-  { title: 'Progressive Web Apps', category: 'Frontend' },
-  { title: 'CI/CD Pipelines', category: 'DevOps' },
-  { title: 'Elasticsearch Basics', category: 'Database' },
-  { title: 'Angular Components', category: 'Frontend' },
-  { title: 'Redis Caching', category: 'Database' },
-  { title: 'Serverless Functions', category: 'Cloud' },
-  { title: 'Web Accessibility', category: 'Frontend' },
-  { title: 'API Rate Limiting', category: 'Backend' },
-  { title: 'Nginx Configuration', category: 'DevOps' },
-  { title: 'Clean Code Principles', category: 'Programming' },
-  { title: 'SOLID Principles', category: 'Architecture' },
-  { title: 'Functional Programming', category: 'Programming' },
-  { title: 'Async/Await Patterns', category: 'Programming' },
-  { title: 'WebAssembly Intro', category: 'Advanced' },
-  { title: 'Blockchain Basics', category: 'Emerging Tech' },
-  { title: 'IoT Development', category: 'Emerging Tech' },
-  { title: 'Mobile App Development', category: 'Mobile' },
-  { title: 'Game Development Unity', category: 'Gaming' },
-  { title: 'Data Visualization', category: 'Data Science' },
-  { title: 'Natural Language Processing', category: 'AI/ML' },
-  { title: 'Computer Vision Basics', category: 'AI/ML' },
+  { title: 'JavaScript Cơ Bản', category: 'Programming', description: 'Kiểm tra kiến thức JavaScript từ cơ bản đến nâng cao' },
+  { title: 'React & Hooks', category: 'Frontend', description: 'Bài kiểm tra về React, Hooks và các patterns phổ biến' },
+  { title: 'Node.js & Express', category: 'Backend', description: 'Kiểm tra kiến thức về Node.js và Express framework' },
+  { title: 'TypeScript Nâng Cao', category: 'Programming', description: 'Bài test TypeScript với các khái niệm nâng cao' },
+  { title: 'SQL & Database', category: 'Database', description: 'Kiểm tra kiến thức SQL và thiết kế cơ sở dữ liệu' },
+  { title: 'HTML & CSS', category: 'Frontend', description: 'Bài kiểm tra về HTML5, CSS3 và responsive design' },
+  { title: 'Git & Version Control', category: 'DevOps', description: 'Kiểm tra kiến thức Git và quản lý phiên bản' },
+  { title: 'RESTful API Design', category: 'Backend', description: 'Bài test về thiết kế và xây dựng RESTful API' },
+  { title: 'Docker & Containers', category: 'DevOps', description: 'Kiểm tra kiến thức Docker và containerization' },
+  { title: 'Testing & QA', category: 'Testing', description: 'Bài kiểm tra về unit testing, integration testing' },
 ];
 
 // Question templates for variety
@@ -140,21 +100,21 @@ export async function seedQuizzes(dataSource: DataSource) {
   const allQuestions: Question[] = [];
   const allAnswerOptions: AnswerOption[] = [];
 
-  // Create 50 quizzes
-  for (let i = 0; i < 50; i++) {
+  // Create 10 quizzes with 15-40 questions each
+  for (let i = 0; i < 10; i++) {
     const topic = quizTopics[i];
     const instructor = instructors[i % instructors.length];
     const isFree = i % 3 !== 0; // 2/3 are free
-    const isPublic = i % 5 !== 0; // 4/5 are public
+    const isPublic = true; // All public
 
     const quiz = quizRepository.create({
       creatorId: instructor.id,
-      title: `${topic.title} - Quiz ${i + 1}`,
-      description: `Comprehensive quiz covering ${topic.title} concepts. Test your knowledge in ${topic.category}.`,
+      title: topic.title,
+      description: topic.description,
       isPublic,
       isFree,
       price: isFree ? 0 : Math.floor(Math.random() * 50 + 10), // 10-60 if paid
-      timeLimit: 30 + (i % 6) * 10, // 30-80 minutes
+      timeLimit: 30 + (i % 4) * 15, // 30-75 minutes
       totalAttempts: 0,
       shareCount: Math.floor(Math.random() * 100),
     });
@@ -166,13 +126,18 @@ export async function seedQuizzes(dataSource: DataSource) {
   const savedQuizzes = await quizRepository.save(quizzes);
   console.log(`✅ Created ${savedQuizzes.length} quizzes`);
 
-  // Create questions and answer options for each quiz
+  // Create questions and answer options for each quiz (15-40 questions random)
+  const questionCounts: number[] = [];
   for (let quizIndex = 0; quizIndex < savedQuizzes.length; quizIndex++) {
     const quiz = savedQuizzes[quizIndex];
     const topic = quizTopics[quizIndex];
+    
+    // Random 15-40 questions per quiz
+    const numQuestions = Math.floor(Math.random() * 26) + 15; // 15-40
+    questionCounts.push(numQuestions);
 
-    for (let qIndex = 0; qIndex < 30; qIndex++) {
-      const hasMultipleCorrect = qIndex % 5 === 0; // Every 5th question has multiple correct answers
+    for (let qIndex = 0; qIndex < numQuestions; qIndex++) {
+      const hasMultipleCorrect = qIndex % 7 === 0; // Every 7th question has multiple correct answers
 
       const question = questionRepository.create({
         quizId: quiz.id,
@@ -184,6 +149,9 @@ export async function seedQuizzes(dataSource: DataSource) {
       allQuestions.push(question);
     }
   }
+  
+  console.log(`📊 Question distribution: ${questionCounts.join(', ')}`);
+  console.log(`📊 Total questions: ${allQuestions.length}`);
 
   // Save questions in batches
   const savedQuestions = await questionRepository.save(allQuestions);

@@ -29,8 +29,11 @@ export class LectureNotesService {
     const { page = 1, limit = 10, lectureId } = filter;
     const queryBuilder = this.lectureNoteRepository
       .createQueryBuilder('note')
+      .leftJoinAndSelect('note.lecture', 'lecture')
+      .leftJoinAndSelect('lecture.chapter', 'chapter')
+      .leftJoinAndSelect('chapter.course', 'course')
       .where('note.userId = :userId', { userId })
-      .orderBy('note.timestampSeconds', 'ASC')
+      .orderBy('note.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);
 
