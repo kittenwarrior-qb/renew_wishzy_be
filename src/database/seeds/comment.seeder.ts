@@ -11,12 +11,12 @@ export async function seedComments(dataSource: DataSource) {
     return;
   }
 
-  // Get users and courses
+  // Get users and lectures
   const users = await dataSource.query("SELECT id FROM users WHERE role = 'user' LIMIT 20");
-  const courses = await dataSource.query('SELECT id FROM courses LIMIT 30');
+  const lectures = await dataSource.query('SELECT id FROM lectures LIMIT 100');
 
-  if (users.length === 0 || courses.length === 0) {
-    console.log('⚠️  Users or courses not found. Please seed them first.');
+  if (users.length === 0 || lectures.length === 0) {
+    console.log('⚠️  Users or lectures not found. Please seed them first.');
     return;
   }
 
@@ -55,35 +55,34 @@ export async function seedComments(dataSource: DataSource) {
 
   for (let i = 0; i < numberOfComments; i++) {
     const user = users[Math.floor(Math.random() * users.length)];
-    const course = courses[Math.floor(Math.random() * courses.length)];
+    const lecture = lectures[Math.floor(Math.random() * lectures.length)];
     
-    // Determine rating and corresponding comment
+    // Determine comment type
     const random = Math.random();
-    let rating: number;
     let content: string;
+    let baseLikes: number;
+    let baseDislikes: number;
     
-    if (random < 0.7) { // 70% positive (4-5 stars)
-      rating = Math.random() < 0.6 ? 5.0 : 4.0;
+    if (random < 0.7) { // 70% positive
       content = positiveComments[Math.floor(Math.random() * positiveComments.length)];
-    } else if (random < 0.9) { // 20% neutral (3 stars)
-      rating = 3.0;
+      baseLikes = Math.floor(Math.random() * 50) + 10;
+      baseDislikes = Math.floor(Math.random() * 5);
+    } else if (random < 0.9) { // 20% neutral
       content = neutralComments[Math.floor(Math.random() * neutralComments.length)];
-    } else { // 10% critical (1-2 stars)
-      rating = Math.random() < 0.5 ? 2.0 : 1.0;
+      baseLikes = Math.floor(Math.random() * 20) + 5;
+      baseDislikes = Math.floor(Math.random() * 10);
+    } else { // 10% critical
       content = criticalComments[Math.floor(Math.random() * criticalComments.length)];
+      baseLikes = Math.floor(Math.random() * 10);
+      baseDislikes = Math.floor(Math.random() * 30) + 5;
     }
-
-    // Random likes and dislikes based on rating
-    const baseLikes = rating >= 4 ? Math.floor(Math.random() * 50) + 10 : Math.floor(Math.random() * 10);
-    const baseDislikes = rating <= 2 ? Math.floor(Math.random() * 30) + 5 : Math.floor(Math.random() * 5);
 
     comments.push({
       content,
-      rating,
       like: baseLikes,
       dislike: baseDislikes,
       userId: user.id,
-      courseId: course.id,
+      lectureId: lecture.id,
       createdAt: new Date(Date.now() - Math.floor(Math.random() * 90 * 24 * 60 * 60 * 1000)), // Random date within last 90 days
     });
   }
