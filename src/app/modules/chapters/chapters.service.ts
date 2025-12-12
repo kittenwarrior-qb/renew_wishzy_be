@@ -76,18 +76,18 @@ export class ChaptersService {
     const chapters = await this.chapterRepository
       .createQueryBuilder('chapter')
       .leftJoinAndSelect('chapter.course', 'course')
-      .leftJoin('lectures', 'lecture', 'lecture.chapter_id = chapter.id')
-      .select([
-        'chapter',
-        'course.id',
-        'course.name',
-        'lecture.id',
-        'lecture.name',
-        'lecture.duration',
-        'lecture.is_preview',
-        'lecture.order_index',
-        'lecture.file_url',
-      ])
+      .leftJoin(
+        'lectures',
+        'lecture',
+        'lecture.chapter_id = chapter.id AND lecture.deleted_at IS NULL',
+      )
+      .select(['chapter', 'course.id', 'course.name'])
+      .addSelect('lecture.id', 'lecture_id')
+      .addSelect('lecture.name', 'lecture_name')
+      .addSelect('lecture.duration', 'lecture_duration')
+      .addSelect('lecture.is_preview', 'lecture_is_preview')
+      .addSelect('lecture.order_index', 'lecture_order_index')
+      .addSelect('lecture.file_url', 'lecture_file_url')
       .where('chapter.course_id = :courseId', { courseId })
       .getRawAndEntities();
 
@@ -99,9 +99,10 @@ export class ChaptersService {
             id: raw.lecture_id,
             name: raw.lecture_name,
             duration: raw.lecture_duration,
-            isPreview: raw.is_preview,
-            orderIndex: raw.order_index,
-            fileUrl: raw.file_url, // Always return fileUrl, not just for preview
+            isPreview: raw.lecture_is_preview,
+            orderIndex: raw.lecture_order_index,
+            // Only return fileUrl for preview lectures (security)
+            fileUrl: raw.lecture_is_preview ? raw.lecture_file_url : undefined,
           }))
           .sort((a, b) => a.orderIndex - b.orderIndex); // Sort lectures by orderIndex ASC
 
