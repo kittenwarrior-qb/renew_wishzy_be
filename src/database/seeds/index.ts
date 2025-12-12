@@ -31,6 +31,8 @@ import { OrderDetail } from '../../app/entities/order-detail.entity';
 import { Enrollment } from '../../app/entities/enrollment.entity';
 import { Comment } from '../../app/entities/comment.entity';
 import { Wishlist } from '../../app/entities/wishlist.entity';
+import { Feedback } from '../../app/entities/feedback.entity';
+import { LectureNote } from '../../app/entities/lecture-note.entity';
 
 async function runSeeders() {
   console.log('🌱 Starting database seeding...');
@@ -58,6 +60,8 @@ async function runSeeders() {
       Enrollment,
       Comment,
       Wishlist,
+      Feedback,
+      LectureNote,
     ],
   });
 
