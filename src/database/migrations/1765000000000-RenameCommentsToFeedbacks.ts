@@ -23,13 +23,36 @@ export class RenameCommentsToFeedbacks1765000000000 implements MigrationInterfac
       // Feedbacks table already exists (likely created by TypeORM sync)
       // Just drop comments table if it exists
       if (commentsExists[0].exists) {
-        // Migrate data from comments to feedbacks if both exist
-        await queryRunner.query(`
-          INSERT INTO "feedbacks" (id, content, rating, "like", dislike, user_id, course_id, created_at, updated_at)
-          SELECT id, content, rating, "like", dislike, user_id, course_id, created_at, updated_at
-          FROM "comments"
-          ON CONFLICT (id) DO NOTHING
+        // Check if comments table has rating and course_id columns (old schema)
+        const hasRatingColumn = await queryRunner.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'comments' 
+            AND column_name = 'rating'
+          );
         `);
+        
+        const hasCourseIdColumn = await queryRunner.query(`
+          SELECT EXISTS (
+            SELECT FROM information_schema.columns 
+            WHERE table_schema = 'public' 
+            AND table_name = 'comments' 
+            AND column_name = 'course_id'
+          );
+        `);
+
+        // Only migrate if comments has the old schema (with rating and course_id)
+        if (hasRatingColumn[0].exists && hasCourseIdColumn[0].exists) {
+          // Migrate data from comments to feedbacks if both exist
+          await queryRunner.query(`
+            INSERT INTO "feedbacks" (id, content, rating, "like", dislike, user_id, course_id, created_at, updated_at)
+            SELECT id, content, rating, "like", dislike, user_id, course_id, created_at, updated_at
+            FROM "comments"
+            ON CONFLICT (id) DO NOTHING
+          `);
+        }
+        // Drop comments table regardless of schema
         await queryRunner.query(`DROP TABLE IF EXISTS "comments"`);
       }
     } else if (commentsExists[0].exists) {

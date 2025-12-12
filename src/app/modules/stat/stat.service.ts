@@ -375,7 +375,7 @@ export class StatService {
     // Lấy chi tiết từng khóa học
     const coursesData = await this.courseRepository.query(
       `
-      SELECT 
+      SELECT
         c.id as "courseId",
         c.name as "courseName",
         c.average_rating as "averageRating",
@@ -383,7 +383,9 @@ export class StatService {
         COUNT(DISTINCT cm.id) as "commentCount"
       FROM courses c
       LEFT JOIN enrollments e ON e.course_id = c.id
-      LEFT JOIN comments cm ON cm.course_id = c.id
+      LEFT JOIN chapters ch ON ch.course_id = c.id
+      LEFT JOIN lectures l ON l.chapter_id = ch.id
+      LEFT JOIN comments cm ON cm.lecture_id = l.id
       WHERE c.created_by = $1
       GROUP BY c.id, c.name, c.average_rating
       `,
