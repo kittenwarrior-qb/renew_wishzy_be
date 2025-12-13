@@ -37,6 +37,12 @@ export abstract class BaseOwnershipGuard<T extends OwnableEntity> implements Can
       throw new BadRequestException(`${this.entityName} with ID ${entityId} not found`);
     }
 
+    // Admin has full permission - bypass ownership check
+    if (user.role === 'admin') {
+      request[this.entityName.toLowerCase()] = entityRecord;
+      return true;
+    }
+
     if (entityRecord.createdBy !== user.id) {
       throw new ForbiddenException(
         `You are not authorized to perform this action on this ${this.entityName.toLowerCase()}`,
