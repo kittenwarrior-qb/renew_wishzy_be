@@ -215,26 +215,51 @@ export class UsersService {
     const courseIds = courses.map((course) => course.id);
 
     // Build query to get students enrolled in instructor's courses
-    const queryBuilder = this.usersRepository
+    // Sử dụng subquery để lấy distinct user IDs trước, sau đó join lại để lấy full user data
+    const baseQuery = this.usersRepository
       .createQueryBuilder('user')
       .innerJoin(Enrollment, 'enrollment', 'enrollment.userId = user.id')
       .where('enrollment.courseId IN (:...courseIds)', { courseIds })
-      .andWhere('user.role = :role', { role: UserRole.USER })
-      .distinct(true);
+      .andWhere('user.role = :role', { role: UserRole.USER });
 
     if (fullName) {
-      queryBuilder.andWhere('user.fullName ILIKE :fullName', { fullName: `%${fullName}%` });
+      baseQuery.andWhere('user.fullName ILIKE :fullName', { fullName: `%${fullName}%` });
     }
 
     if (email) {
-      queryBuilder.andWhere('user.email ILIKE :email', { email: `%${email}%` });
+      baseQuery.andWhere('user.email ILIKE :email', { email: `%${email}%` });
     }
 
-    const [students, total] = await queryBuilder
+    // Get distinct user IDs for counting total
+    const countQuery = baseQuery
+      .select('DISTINCT user.id', 'id')
+      .getRawMany();
+    
+    const distinctUserIds = await countQuery;
+    const total = distinctUserIds.length;
+
+    if (total === 0) {
+      return {
+        items: [],
+        pagination: {
+          totalPage: 0,
+          totalItems: 0,
+          currentPage: page,
+          itemsPerPage: limit,
+        },
+      };
+    }
+
+    const userIds = distinctUserIds.map((row) => row.id);
+
+    // Get full user data with pagination
+    const students = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.id IN (:...userIds)', { userIds })
       .orderBy('user.created_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
-      .getManyAndCount();
+      .getMany();
 
     return {
       items: students,

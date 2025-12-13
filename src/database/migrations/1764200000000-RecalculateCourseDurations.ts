@@ -28,27 +28,53 @@ export class RecalculateCourseDurations1764200000000 implements MigrationInterfa
       WHERE co.deleted_at IS NULL
     `);
 
-    console.log('⭐ Recalculating course ratings...');
-    await queryRunner.query(`
-      UPDATE courses co
-      SET average_rating = COALESCE((
-        SELECT ROUND(AVG(c.rating)::numeric, 2)
-        FROM comments c
-        WHERE c.course_id = co.id
-      ), 0)
-      WHERE co.deleted_at IS NULL
+    // Check which table exists: comments or feedbacks
+    const commentsExists = await queryRunner.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'comments'
+      );
+    `);
+    
+    const feedbacksExists = await queryRunner.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'feedbacks'
+      );
     `);
 
-    console.log('💬 Recalculating comment counts...');
-    await queryRunner.query(`
-      UPDATE courses co
-      SET rating = COALESCE((
-        SELECT COUNT(*)
-        FROM comments c
-        WHERE c.course_id = co.id
-      ), 0)
-      WHERE co.deleted_at IS NULL
-    `);
+    const ratingTableName = feedbacksExists[0].exists ? 'feedbacks' : (commentsExists[0].exists ? 'comments' : null);
+
+    if (ratingTableName) {
+      console.log(`⭐ Recalculating course ratings from ${ratingTableName} table...`);
+      // Use parameterized query with proper table name quoting
+      const updateRatingQuery = `
+        UPDATE courses co
+        SET average_rating = COALESCE((
+          SELECT ROUND(AVG(c.rating)::numeric, 2)
+          FROM "${ratingTableName}" c
+          WHERE c.course_id = co.id
+        ), 0)
+        WHERE co.deleted_at IS NULL
+      `;
+      await queryRunner.query(updateRatingQuery);
+
+      console.log('💬 Recalculating comment counts...');
+      const updateCountQuery = `
+        UPDATE courses co
+        SET rating = COALESCE((
+          SELECT COUNT(*)
+          FROM "${ratingTableName}" c
+          WHERE c.course_id = co.id
+        ), 0)
+        WHERE co.deleted_at IS NULL
+      `;
+      await queryRunner.query(updateCountQuery);
+    } else {
+      console.log('⚠️  Neither comments nor feedbacks table found, skipping rating recalculation');
+    }
 
     console.log('✅ Successfully recalculated all course data:');
     console.log('   - Chapter durations');
