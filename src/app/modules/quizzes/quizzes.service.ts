@@ -155,6 +155,8 @@ export class QuizzesService {
     userId: string,
     userRole: string,
   ): Promise<Quiz> {
+    console.log('Update quiz payload:', JSON.stringify(updateQuizDto, null, 2));
+    
     // Don't load questions to avoid cascade update issues
     const quiz = await this.quizRepository.findOne({
       where: { id },

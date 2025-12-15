@@ -6,4 +6,5 @@ export interface PaginationResponse<T> {
     currentPage: number;
     itemsPerPage: number;
   };
+  statistics?: any; // Optional statistics field for instructor endpoints
 }

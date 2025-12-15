@@ -36,6 +36,7 @@ export class CreateQuestionDto {
     minimum: 1,
     required: true,
   })
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   points: number;
@@ -44,7 +45,9 @@ export class CreateQuestionDto {
     example: 0,
     description: 'Order index for display (auto-generated if not provided)',
   })
+  @Type(() => Number)
   @IsInt()
+  @Min(0)
   @IsOptional()
   orderIndex?: number;
 

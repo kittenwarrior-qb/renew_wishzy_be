@@ -97,6 +97,23 @@ export class OrdersController {
     };
   }
 
+  @Get('instructor-revenue')
+  @Roles(UserRole.INSTRUCTOR)
+  async getInstructorRevenue(@CurrentUser() user: User, @Query() filterDto: FilterOrderDto) {
+    console.log('🎯 Instructor Revenue API called by user:', { 
+      id: user.id, 
+      email: user.email, 
+      role: user.role 
+    });
+    
+    const results = await this.ordersService.findInstructorOrders(user.id, filterDto);
+
+    return {
+      ...results,
+      message: 'Instructor revenue retrieved successfully',
+    };
+  }
+
   @Get()
   @Roles(UserRole.ADMIN)
   async findAll(@Query() filterDto: FilterOrderDto) {

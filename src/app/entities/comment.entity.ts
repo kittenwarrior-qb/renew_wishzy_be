@@ -10,6 +10,12 @@ import {
 import { User } from './user.entity';
 import { Lecture } from './lecture.entity';
 
+export enum CommentStatus {
+  PENDING = 'pending',
+  REPLIED = 'replied',
+  RESOLVED = 'resolved',
+}
+
 @Entity('comments')
 export class Comment {
   @PrimaryGeneratedColumn('uuid')
@@ -23,6 +29,13 @@ export class Comment {
 
   @Column({ type: 'int', default: 0 })
   dislike!: number;
+
+  @Column({
+    type: 'enum',
+    enum: CommentStatus,
+    default: CommentStatus.PENDING,
+  })
+  status!: CommentStatus;
 
   @Column({ type: 'uuid', name: 'user_id' })
   userId!: string;

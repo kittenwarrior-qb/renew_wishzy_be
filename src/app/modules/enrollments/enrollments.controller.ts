@@ -1,10 +1,11 @@
-import { Controller, Get, Body, Patch, Param, Req, Post } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Body, Patch, Param, Req, Post, Query } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Request } from 'express';
 import { EnrollmentsService } from './enrollments.service';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
 import { UpdateAttributeDto } from './dto/update-attribute.dto';
 import { EnrollFreeCourseDto } from './dto/enroll-free-course.dto';
+import { FilterEnrollmentDto } from './dto/filter-enrollment.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from 'src/app/entities/user.entity';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -14,6 +15,27 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @ApiBearerAuth('bearer')
 export class EnrollmentsController {
   constructor(private readonly enrollmentsService: EnrollmentsService) {}
+
+  @Get('instructor/my-students')
+  @Roles(UserRole.INSTRUCTOR)
+  @ApiOperation({
+    summary: 'Get all students enrolled in instructor courses',
+    description: 'Retrieve a paginated list of students with statistics',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Students retrieved successfully',
+  })
+  async getInstructorStudents(
+    @CurrentUser() user: User,
+    @Query() filterDto: FilterEnrollmentDto,
+  ) {
+    const result = await this.enrollmentsService.findStudentsByInstructor(user.id, filterDto);
+    return {
+      message: 'Instructor students retrieved successfully',
+      ...result,
+    };
+  }
 
   @Get('user/:userId')
   @Roles(UserRole.ADMIN)

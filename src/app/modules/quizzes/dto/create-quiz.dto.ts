@@ -55,6 +55,7 @@ export class CreateQuizDto {
     description: 'Price in VND for taking the quiz (only applicable if isFree is false)',
     minimum: 0,
   })
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   @Min(0)
@@ -65,6 +66,7 @@ export class CreateQuizDto {
     description: 'Time limit for completing the quiz in minutes. Leave empty for no time limit.',
     minimum: 1,
   })
+  @Type(() => Number)
   @IsInt()
   @IsOptional()
   @Min(1)

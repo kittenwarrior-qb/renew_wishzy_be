@@ -12,6 +12,8 @@ import { seedVouchers } from './voucher.seeder';
 import { seedOrdersAndEnrollments } from './order-enrollment.seeder';
 import { seedComments } from './comment.seeder';
 import { seedWishlists } from './wishlist.seeder';
+import { seedFeedbacks } from './feedback.seeder';
+
 
 // Import entities
 import { User } from '../../app/entities/user.entity';
@@ -107,9 +109,15 @@ async function runSeeders() {
     await seedWishlists(dataSource);
     console.log('');
 
+    console.log('📝 Seeding feedbacks...');
+    await seedFeedbacks(dataSource);
+    console.log('');
+
     console.log('📝 Seeding quizzes...');
     await seedQuizzes(dataSource);
     console.log('');
+
+
 
     console.log('=====================================');
     console.log('🎉 Seeding completed successfully!');
@@ -126,7 +134,9 @@ async function runSeeders() {
     console.log('- Enrollments: Auto-generated from completed orders');
     console.log('- Comments: 100 realistic Vietnamese reviews');
     console.log('- Wishlists: One per user with 2-8 courses');
+    console.log('- Feedbacks: 60 realistic Vietnamese feedbacks');
     console.log('- Quizzes: From existing quiz seeder');
+
     console.log('');
   } catch (error) {
     console.error('❌ Seeding failed:', error);

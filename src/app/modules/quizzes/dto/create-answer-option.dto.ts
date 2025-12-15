@@ -1,4 +1,5 @@
-import { IsString, IsNotEmpty, IsBoolean, IsOptional, IsInt } from 'class-validator';
+import { IsString, IsNotEmpty, IsBoolean, IsOptional, IsInt, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateAnswerOptionDto {
@@ -24,7 +25,9 @@ export class CreateAnswerOptionDto {
     example: 0,
     description: 'Order index for display (auto-generated if not provided)',
   })
+  @Type(() => Number)
   @IsInt()
+  @Min(0)
   @IsOptional()
   orderIndex?: number;
 }

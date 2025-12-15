@@ -27,6 +27,8 @@ import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { QuizzesModule } from './modules/quizzes/quizzes.module';
 import { StatModule } from './modules/stat/stat.module';
 import { LectureNotesModule } from './modules/lecture-notes/lecture-notes.module';
+import { InstructorModule } from './modules/instructor/instructor.module';
+
 
 @Module({
   imports: [
@@ -96,6 +98,8 @@ import { LectureNotesModule } from './modules/lecture-notes/lecture-notes.module
     QuizzesModule,
     StatModule,
     LectureNotesModule,
+    InstructorModule,
+
   ],
   providers: [
     // Global Guards
