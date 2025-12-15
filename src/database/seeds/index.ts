@@ -5,6 +5,7 @@ import { dataSourceOptions } from '../data-source';
 import { seedUsers } from './user.seeder';
 import { seedCategories } from './category.seeder';
 import { seedCourses } from './course.seeder';
+import { seedChaptersAndLectures } from './chapter-lecture.seeder';
 import { seedQuizzes } from './quiz.seeder';
 import { seedBanners } from './banner.seeder';
 import { seedVouchers } from './voucher.seeder';
@@ -82,6 +83,10 @@ async function runSeeders() {
     await seedCourses(dataSource);
     console.log('');
 
+    console.log('📝 Seeding chapters and lectures...');
+    await seedChaptersAndLectures(dataSource);
+    console.log('');
+
     console.log('📝 Seeding banners...');
     await seedBanners(dataSource);
     console.log('');
@@ -113,6 +118,8 @@ async function runSeeders() {
     console.log('- Users: 33 (2 admins, 10 instructors, 21 students)');
     console.log('- Categories: 18 diverse categories');
     console.log('- Courses: 30 courses with real images');
+    console.log('- Chapters: 4-5 chapters per course with video lectures');
+    console.log('- Lectures: 3-4 lectures per chapter with MP4 video URLs');
     console.log('- Banners: 7 promotional banners');
     console.log('- Vouchers: 15 discount vouchers');
     console.log('- Orders: ~70 orders with varying statuses');
