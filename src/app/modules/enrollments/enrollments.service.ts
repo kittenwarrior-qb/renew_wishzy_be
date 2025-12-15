@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
+import { FilterEnrollmentDto } from './dto/filter-enrollment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Enrollment, EnrollmentStatus } from 'src/app/entities/enrollment.entity';
 import { In, Repository } from 'typeorm';
@@ -11,6 +12,7 @@ import { User } from 'src/app/entities/user.entity';
 import { CertificateService } from './certificate.service';
 import { MailService } from '../mail/mail.service';
 import { CloudinaryService } from '../uploads/cloudinary.service';
+import { PaginationResponse } from 'src/app/shared/utils/response-utils';
 
 @Injectable()
 export class EnrollmentsService {
@@ -329,6 +331,86 @@ export class EnrollmentsService {
 
     return {
       certificateImageUrl: updatedEnrollment.certificateImageUrl || '',
+    };
+  }
+
+  /**
+   * Get all students enrolled in instructor's courses
+   * @param instructorId - ID of the instructor
+   * @param filter - Filter and pagination options
+   */
+  async findStudentsByInstructor(
+    instructorId: string,
+    filter: FilterEnrollmentDto,
+  ): Promise<PaginationResponse<any>> {
+    const { page = 1, limit = 10, courseId, status, search, sortBy = 'enrollmentDate', sortOrder = 'desc' } = filter;
+
+    // Build query to find enrollments from instructor's courses
+    const queryBuilder = this.enrollmentRepository
+      .createQueryBuilder('enrollment')
+      .leftJoinAndSelect('enrollment.course', 'course')
+      .leftJoinAndSelect('enrollment.user', 'user')
+      .where('course.created_by = :instructorId', { instructorId });
+
+    // Apply filters
+    if (courseId) {
+      queryBuilder.andWhere('enrollment.courseId = :courseId', { courseId });
+    }
+
+    if (status) {
+      queryBuilder.andWhere('enrollment.status = :status', { status });
+    }
+
+    if (search) {
+      queryBuilder.andWhere(
+        '(user.fullName ILIKE :search OR user.email ILIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    // Apply sorting
+    const sortField = sortBy === 'enrollmentDate' ? 'enrollment.created_at' : `enrollment.${sortBy}`;
+    queryBuilder.orderBy(sortField, sortOrder.toUpperCase() as 'ASC' | 'DESC');
+
+    // Count total before pagination
+    const total = await queryBuilder.getCount();
+
+    // Apply pagination
+    queryBuilder.skip((page - 1) * limit);
+    queryBuilder.take(limit);
+
+    const enrollments = await queryBuilder.getMany();
+
+    // Calculate statistics
+    const allEnrollmentsQuery = this.enrollmentRepository
+      .createQueryBuilder('enrollment')
+      .leftJoin('enrollment.course', 'course')
+      .where('course.created_by = :instructorId', { instructorId });
+
+    if (courseId) {
+      allEnrollmentsQuery.andWhere('enrollment.courseId = :courseId', { courseId });
+    }
+
+    const allEnrollments = await allEnrollmentsQuery.getMany();
+
+    const statistics = {
+      totalStudents: allEnrollments.length,
+      activeStudents: allEnrollments.filter(e => e.status === EnrollmentStatus.ONGOING).length,
+      completedStudents: allEnrollments.filter(e => e.status === EnrollmentStatus.COMPLETED).length,
+      averageProgress: allEnrollments.length > 0
+        ? allEnrollments.reduce((sum, e) => sum + (e.progress || 0), 0) / allEnrollments.length
+        : 0,
+    };
+
+    return {
+      items: enrollments,
+      pagination: {
+        totalPage: Math.ceil(total / limit),
+        totalItems: total,
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+      statistics,
     };
   }
 }

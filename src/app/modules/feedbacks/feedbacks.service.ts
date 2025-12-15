@@ -152,6 +152,38 @@ export class FeedbacksService {
     await this.updateCourseAverageRating(courseId);
   }
 
+  async findByInstructorCourses(
+    instructorId: string,
+    page: number = 1,
+    limit: number = 10,
+    courseId?: string,
+  ): Promise<PaginationResponse<Feedback>> {
+    const queryBuilder = this.feedbackRepository
+      .createQueryBuilder('feedback')
+      .leftJoinAndSelect('feedback.user', 'user')
+      .leftJoinAndSelect('feedback.course', 'course')
+      .where('course.createdBy = :instructorId', { instructorId })
+      .orderBy('feedback.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (courseId) {
+      queryBuilder.andWhere('feedback.courseId = :courseId', { courseId });
+    }
+
+    const [feedbacks, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items: feedbacks,
+      pagination: {
+        totalPage: Math.ceil(total / limit),
+        totalItems: total,
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+    };
+  }
+
   /**
    * Calculate and update the average rating for a course
    */

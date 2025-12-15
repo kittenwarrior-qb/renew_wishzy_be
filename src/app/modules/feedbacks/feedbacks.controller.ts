@@ -11,9 +11,10 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { FilterFeedbackDto } from './dto/filter-feedback.dto';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { User } from 'src/app/entities/user.entity';
+import { User, UserRole } from 'src/app/entities/user.entity';
 
 @Controller('feedbacks')
 @ApiBearerAuth('bearer')
@@ -266,6 +267,88 @@ export class FeedbacksController {
     await this.feedbacksService.remove(feedbackId, user.id);
     return {
       message: 'Feedback deleted successfully',
+    };
+  }
+
+  @Get('instructor/my-courses')
+  @Roles(UserRole.INSTRUCTOR)
+  @ApiOperation({
+    summary: 'Get all feedbacks for instructor courses',
+    description: 'Retrieve a paginated list of all feedbacks from the instructor\'s courses.',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (default: 10)',
+    example: 10,
+  })
+  @ApiQuery({
+    name: 'courseId',
+    required: false,
+    type: String,
+    description: 'Filter by specific course ID',
+    example: 'uuid-string',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Instructor feedbacks retrieved successfully',
+    schema: {
+      example: {
+        message: 'Instructor feedbacks retrieved successfully',
+        items: [
+          {
+            id: 'uuid',
+            content: 'Great course!',
+            rating: 5,
+            like: 10,
+            dislike: 0,
+            userId: 'uuid',
+            courseId: 'uuid',
+            createdAt: '2025-11-14T10:00:00.000Z',
+            updatedAt: '2025-11-14T10:00:00.000Z',
+            user: {
+              id: 'uuid',
+              fullName: 'John Doe',
+              avatar: 'url',
+            },
+            course: {
+              id: 'uuid',
+              name: 'Course Name',
+            },
+          },
+        ],
+        pagination: {
+          totalPage: 10,
+          totalItems: 100,
+          currentPage: 1,
+          itemsPerPage: 10,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - User is not an instructor' })
+  async getInstructorFeedbacks(
+    @CurrentUser() user: User,
+    @Query() filterDto: FilterFeedbackDto,
+  ) {
+    const result = await this.feedbacksService.findByInstructorCourses(
+      user.id,
+      filterDto.page,
+      filterDto.limit,
+      filterDto.courseId,
+    );
+    return {
+      message: 'Instructor feedbacks retrieved successfully',
+      ...result,
     };
   }
 

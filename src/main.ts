@@ -56,6 +56,8 @@ async function bootstrap() {
           };
         });
 
+        console.log('Validation errors:', JSON.stringify(errors, null, 2));
+
         return new BadRequestException({
           message: 'Validation failed',
           errors: errors,

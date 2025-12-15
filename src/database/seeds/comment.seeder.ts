@@ -50,19 +50,21 @@ export async function seedComments(dataSource: DataSource) {
 
   const comments: any[] = [];
 
-  // Generate 80-120 comments
-  const numberOfComments = 100;
+  // Generate 80-120 comments (80 parent comments, 20 replies)
+  const numberOfParentComments = 80;
+  const numberOfReplies = 20;
 
-  for (let i = 0; i < numberOfComments; i++) {
+  // Create parent comments first
+  for (let i = 0; i < numberOfParentComments; i++) {
     const user = users[Math.floor(Math.random() * users.length)];
     const lecture = lectures[Math.floor(Math.random() * lectures.length)];
-    
+
     // Determine comment type
     const random = Math.random();
     let content: string;
     let baseLikes: number;
     let baseDislikes: number;
-    
+
     if (random < 0.7) { // 70% positive
       content = positiveComments[Math.floor(Math.random() * positiveComments.length)];
       baseLikes = Math.floor(Math.random() * 50) + 10;
@@ -87,6 +89,42 @@ export async function seedComments(dataSource: DataSource) {
     });
   }
 
-  await commentRepository.save(comments);
-  console.log(`✅ Successfully seeded ${comments.length} comments!`);
+  // Save parent comments first to get their IDs
+  const savedParentComments = await commentRepository.save(comments);
+  console.log(`✅ Successfully seeded ${savedParentComments.length} parent comments!`);
+
+  // Now create reply comments
+  const replies: any[] = [];
+  for (let i = 0; i < numberOfReplies; i++) {
+    const user = users[Math.floor(Math.random() * users.length)];
+    const parentComment = savedParentComments[Math.floor(Math.random() * savedParentComments.length)];
+    
+    // Replies are usually shorter
+    const replyContents = [
+      'Đồng ý với bạn!',
+      'Cảm ơn bạn đã chia sẻ!',
+      'Mình cũng nghĩ vậy.',
+      'Rất hữu ích, cảm ơn!',
+      'Bạn có thể giải thích thêm được không?',
+      'Mình có câu hỏi tương tự.',
+      'Chính xác!',
+    ];
+    
+    const content = replyContents[Math.floor(Math.random() * replyContents.length)];
+    const baseLikes = Math.floor(Math.random() * 10);
+    const baseDislikes = Math.floor(Math.random() * 3);
+
+    replies.push({
+      content,
+      like: baseLikes,
+      dislike: baseDislikes,
+      userId: user.id,
+      lectureId: parentComment.lectureId || parentComment.lecture_id, // Reply on same lecture
+      parentId: parentComment.id,
+      createdAt: new Date((parentComment.createdAt || parentComment.created_at).getTime() + Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000)), // Within 7 days of parent
+    });
+  }
+
+  await commentRepository.save(replies);
+  console.log(`✅ Successfully seeded ${replies.length} reply comments!`);
 }

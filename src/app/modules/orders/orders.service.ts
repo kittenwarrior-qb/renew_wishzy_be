@@ -257,4 +257,136 @@ export class OrdersService {
       return false;
     }
   }
+
+  /**
+   * Get orders for courses created by instructor (for revenue tracking)
+   */
+  async findInstructorOrders(
+    instructorId: string,
+    filter: FilterOrderDto,
+  ): Promise<PaginationResponse<any>> {
+    const { page = 1, limit = 10, courseId, voucherId } = filter;
+
+    console.log('🔍 FindInstructorOrders - Input:', { instructorId, filter });
+
+    // Debug: Check if instructor has any courses
+    const instructorCoursesQuery = this.orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .leftJoin('orderDetail.course', 'course')
+      .select(['course.id', 'course.name', 'course.created_by'])
+      .where('course.created_by = :instructorId', { instructorId })
+      .limit(5);
+    
+    const instructorCourses = await instructorCoursesQuery.getRawMany();
+    console.log('📚 Instructor courses:', instructorCourses);
+
+    // Simplified approach: Get order IDs directly with raw SQL
+    const orderIdsQuery = `
+      SELECT DISTINCT od.order_id 
+      FROM detail_orders od 
+      INNER JOIN courses c ON c.id = od.course_id 
+      WHERE c.created_by = $1 
+      ${courseId ? 'AND od.course_id = $2' : ''}
+    `;
+    
+    const queryParams = courseId ? [instructorId, courseId] : [instructorId];
+    console.log('🔍 SQL Query:', orderIdsQuery);
+    console.log('🔍 Query Parameters:', queryParams);
+
+    const orderIdsResult = await this.orderDetailRepository.query(orderIdsQuery, queryParams);
+    console.log('🔍 Raw query result:', orderIdsResult);
+    
+    const instructorOrderIds = orderIdsResult.map((row: any) => row.order_id).filter((id: any) => id !== null && id !== undefined);
+
+    console.log('📋 Found order IDs:', instructorOrderIds.length);
+    console.log('📋 Order IDs:', instructorOrderIds);
+    console.log('📋 Order IDs types:', instructorOrderIds.map(id => ({ id, type: typeof id })));
+
+    if (instructorOrderIds.length === 0) {
+      return {
+        items: [],
+        pagination: {
+          totalPage: 0,
+          totalItems: 0,
+          currentPage: page,
+          itemsPerPage: limit,
+        },
+      };
+    }
+
+    // Build main query with found order IDs
+    const queryBuilder = this.orderRepository
+      .createQueryBuilder('order')
+      .leftJoin('order.user', 'user')
+      .addSelect(['user.id', 'user.email', 'user.fullName', 'user.avatar'])
+      .where('order.id IN (:...instructorOrderIds)', { instructorOrderIds })
+      .orderBy('order.createdAt', 'DESC');
+
+    if (voucherId) {
+      queryBuilder.andWhere('order.voucherId = :voucherId', { voucherId });
+    }
+
+    const total = await queryBuilder.getCount();
+
+    queryBuilder.skip((page - 1) * limit);
+    queryBuilder.take(limit);
+
+    const orders = await queryBuilder.getMany();
+
+    console.log('📦 Orders found:', orders.length);
+    console.log('📦 Orders data:', orders.map(o => ({ id: o.id, status: o.status, totalPrice: o.totalPrice })));
+
+    if (orders.length === 0) {
+      console.log('❌ No orders found - returning empty result');
+      return {
+        items: [],
+        pagination: {
+          totalPage: 0,
+          totalItems: 0,
+          currentPage: page,
+          itemsPerPage: limit,
+        },
+      };
+    }
+
+    const orderIds = orders.map((order) => order.id);
+
+    // Get all order details for these orders
+    const allOrderDetails = await this.orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .leftJoinAndSelect('orderDetail.course', 'course')
+      .where('orderDetail.orderId IN (:...orderIds)', { orderIds })
+      .getMany();
+
+    // Get vouchers if any
+    const orderIdsWithVoucher = orders.filter((o) => o.voucherId).map((o) => o.id);
+    let vouchers = [];
+    if (orderIdsWithVoucher.length > 0) {
+      vouchers = await this.orderRepository
+        .createQueryBuilder('order')
+        .leftJoinAndSelect('order.voucher', 'voucher')
+        .where('order.id IN (:...orderIds)', { orderIds: orderIdsWithVoucher })
+        .getMany();
+    }
+
+    const ordersWithDetails = orders.map((order) => {
+      const orderDetails = allOrderDetails.filter((detail) => detail.orderId === order.id);
+      const orderWithVoucher = vouchers.find((v) => v.id === order.id);
+      return {
+        ...order,
+        voucher: orderWithVoucher?.voucher || null,
+        orderDetails,
+      };
+    });
+
+    return {
+      items: ordersWithDetails,
+      pagination: {
+        totalPage: Math.ceil(total / limit),
+        totalItems: total,
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+    };
+  }
 }

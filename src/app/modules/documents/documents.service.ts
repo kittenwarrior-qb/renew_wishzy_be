@@ -77,4 +77,56 @@ export class DocumentsService {
   async remove(id: string) {
     await this.documentRepository.softDelete(id);
   }
+
+  async findByInstructorCourses(
+    instructorId: string,
+    page: number = 1,
+    limit: number = 10,
+    entityId?: string,
+  ): Promise<PaginationResponse<Document>> {
+    // Build the WHERE clause using subqueries to find documents linked to instructor's courses
+    const queryBuilder = this.documentRepository
+      .createQueryBuilder('document')
+      .where(
+        `(
+          (document.entityType = 'course' AND document.entityId IN (
+            SELECT id FROM courses WHERE created_by = :instructorId
+          ))
+          OR
+          (document.entityType = 'chapter' AND document.entityId IN (
+            SELECT id FROM chapters WHERE course_id IN (
+              SELECT id FROM courses WHERE created_by = :instructorId
+            )
+          ))
+          OR
+          (document.entityType = 'lecture' AND document.entityId IN (
+            SELECT id FROM lectures WHERE chapter_id IN (
+              SELECT id FROM chapters WHERE course_id IN (
+                SELECT id FROM courses WHERE created_by = :instructorId
+              )
+            )
+          ))
+        )`,
+        { instructorId },
+      )
+      .orderBy('document.createdAt', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    if (entityId) {
+      queryBuilder.andWhere('document.entityId = :entityId', { entityId });
+    }
+
+    const [documents, total] = await queryBuilder.getManyAndCount();
+
+    return {
+      items: documents,
+      pagination: {
+        totalPage: Math.ceil(total / limit),
+        totalItems: total,
+        currentPage: page,
+        itemsPerPage: limit,
+      },
+    };
+  }
 }
