@@ -102,6 +102,41 @@ export class UploadsService {
     return this.bunnyService.getVideoInfo(videoId);
   }
 
+  async uploadDocument(file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    // Validate file type - allow PDF, DOC, DOCX
+    const allowedMimeTypes = [
+      'application/pdf',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    ];
+
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      throw new BadRequestException('Only document files (PDF, DOC, DOCX) are allowed');
+    }
+
+    // Validate file size (max 20MB)
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    if (file.size > maxSize) {
+      throw new BadRequestException('File size must be less than 20MB');
+    }
+
+    // Upload to Cloudinary
+    const result = await this.cloudinaryService.uploadDocument(file, 'wishzy/documents');
+
+    return {
+      message: 'Document uploaded successfully',
+      url: result.secure_url,
+      publicId: result.public_id,
+      format: result.format,
+      size: result.bytes,
+      originalName: file.originalname,
+    };
+  }
+
   private extractPublicIdFromUrl(url: string): string {
     // Extract public_id from Cloudinary URL
     // Example: https://res.cloudinary.com/demo/image/upload/v1234567890/wishzy/avatars/abc123.jpg

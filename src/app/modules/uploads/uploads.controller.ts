@@ -109,4 +109,46 @@ export class UploadsController {
 
     return this.uploadsService.getVideoInfo(videoId);
   }
+
+  @Post('document')
+  @ApiOperation({ summary: 'Upload document (PDF, DOC, DOCX) to Cloudinary' })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Document file (PDF, DOC, DOCX). Max size: 20MB',
+        },
+      },
+      required: ['file'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Document uploaded successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Document uploaded successfully' },
+        url: { type: 'string', example: 'https://res.cloudinary.com/...' },
+        publicId: { type: 'string', example: 'wishzy/documents/file_abc123' },
+        format: { type: 'string', example: 'pdf' },
+        size: { type: 'number', example: 1048576 },
+        originalName: { type: 'string', example: 'my-document.pdf' },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: 'Bad request - Invalid file type or size' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadDocument(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    return this.uploadsService.uploadDocument(file);
+  }
 }

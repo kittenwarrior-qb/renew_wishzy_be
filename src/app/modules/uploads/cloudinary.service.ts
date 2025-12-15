@@ -38,6 +38,32 @@ export class CloudinaryService {
     });
   }
 
+  async uploadDocument(
+    file: Express.Multer.File,
+    folder: string = 'wishzy/documents',
+  ): Promise<UploadApiResponse | UploadApiErrorResponse> {
+    return new Promise((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: folder,
+          resource_type: 'raw', // Use 'raw' for non-image files like PDF, DOC
+          use_filename: true,
+          unique_filename: true,
+        },
+        (error, result) => {
+          if (error) return reject(error);
+          resolve(result);
+        },
+      );
+
+      streamifier.createReadStream(file.buffer).pipe(uploadStream);
+    });
+  }
+
+  async deleteDocument(publicId: string): Promise<any> {
+    return cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+  }
+
   async deleteImage(publicId: string): Promise<any> {
     return cloudinary.uploader.destroy(publicId);
   }
