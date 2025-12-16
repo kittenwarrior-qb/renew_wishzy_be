@@ -122,4 +122,68 @@ export class VouchersService {
     const voucher = await this.findOne(id);
     await this.voucherRepository.remove(voucher);
   }
+
+  async findByCode(code: string): Promise<Voucher | null> {
+    return await this.voucherRepository.findOne({ where: { code } });
+  }
+
+  async validateVoucherCode(
+    code: string,
+    orderTotal: number,
+    courseIds: string[],
+  ): Promise<{ valid: boolean; voucher?: Voucher; discount?: number; message?: string }> {
+    const voucher = await this.findByCode(code.toUpperCase());
+
+    if (!voucher) {
+      return { valid: false, message: 'Mã giảm giá không tồn tại' };
+    }
+
+    if (!voucher.isActive) {
+      return { valid: false, message: 'Mã giảm giá đã bị vô hiệu hóa' };
+    }
+
+    const now = new Date();
+    if (voucher.startDate && now < new Date(voucher.startDate)) {
+      return { valid: false, message: 'Mã giảm giá chưa có hiệu lực' };
+    }
+
+    if (voucher.endDate && now > new Date(voucher.endDate)) {
+      return { valid: false, message: 'Mã giảm giá đã hết hạn' };
+    }
+
+    if (voucher.minOrderAmount && orderTotal < Number(voucher.minOrderAmount)) {
+      return {
+        valid: false,
+        message: `Đơn hàng tối thiểu ${voucher.minOrderAmount.toLocaleString('vi-VN')}đ để áp dụng mã này`,
+      };
+    }
+
+    // Check apply scope
+    if (voucher.applyScope === ApplyScope.COURSE && voucher.courseId) {
+      if (!courseIds.includes(voucher.courseId)) {
+        return { valid: false, message: 'Mã giảm giá không áp dụng cho các khóa học này' };
+      }
+    }
+
+    // Calculate discount
+    let discount = 0;
+    if (voucher.discountType === 'percent') {
+      discount = (orderTotal * Number(voucher.discountValue)) / 100;
+      if (voucher.maxDiscountAmount && discount > Number(voucher.maxDiscountAmount)) {
+        discount = Number(voucher.maxDiscountAmount);
+      }
+    } else {
+      discount = Number(voucher.discountValue);
+    }
+
+    // Ensure discount doesn't exceed order total
+    discount = Math.min(discount, orderTotal);
+
+    return {
+      valid: true,
+      voucher,
+      discount,
+      message: 'Áp dụng mã giảm giá thành công',
+    };
+  }
 }

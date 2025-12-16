@@ -59,4 +59,19 @@ export class VouchersController {
       message: 'Voucher deleted successfully',
     };
   }
+
+  @Post('validate')
+  async validateVoucher(
+    @Body() body: { code: string; orderTotal: number; courseIds: string[] },
+  ) {
+    const result = await this.vouchersService.validateVoucherCode(
+      body.code,
+      body.orderTotal,
+      body.courseIds,
+    );
+    return {
+      message: result.message,
+      data: result,
+    };
+  }
 }
