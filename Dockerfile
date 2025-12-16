@@ -30,16 +30,8 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine AS production
 
-# Install dependencies for canvas (build + runtime) and netcat for healthcheck
+# Install runtime dependencies for canvas and netcat for healthcheck
 RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev \
-    pixman-dev \
     cairo \
     jpeg \
     pango \
@@ -50,14 +42,10 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install only production dependencies
-RUN npm ci --omit=dev
-
-# Copy built application from builder stage
+# Copy built application and node_modules from builder stage
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
 
 # Copy database migrations and data-source
 COPY --from=builder /app/src/database ./src/database
