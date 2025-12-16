@@ -8,9 +8,13 @@ import { OrderDetail } from '../../entities/order-detail.entity';
 import { Order } from '../../entities/order.entity';
 import { Feedback } from '../../entities/feedback.entity';
 import { User } from '../../entities/user.entity';
+import { SystemSettingsModule } from '../system-settings/system-settings.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Enrollment, Course, OrderDetail, Order, Feedback, User])],
+  imports: [
+    TypeOrmModule.forFeature([Enrollment, Course, OrderDetail, Order, Feedback, User]),
+    SystemSettingsModule,
+  ],
   controllers: [StatController],
   providers: [StatService],
 })
