@@ -1,4 +1,4 @@
-wishzy.io.vn, www.wishzy.io.vn {
+api.wishzy.io.vn {
     reverse_proxy backend:8000
 
     header {
