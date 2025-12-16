@@ -5,6 +5,7 @@ import { Lecture } from '../../app/entities/lecture.entity';
 import { Comment, CommentStatus } from '../../app/entities/comment.entity';
 import { Feedback } from '../../app/entities/feedback.entity';
 import { User, UserRole } from '../../app/entities/user.entity';
+import { Document, DocumentEntityType } from '../../app/entities/document.entity';
 import { CourseLevel } from '../../app/entities/enums/course.enum';
 
 /**
@@ -25,6 +26,7 @@ import { CourseLevel } from '../../app/entities/enums/course.enum';
  * - 5 lectures
  * - 15-25 comments + 8 replies
  * - 15 feedbacks
+ * - 11 documents (course, chapter, lecture levels)
  *
  * @see INSTRUCTOR_SEED_README.md để biết thêm chi tiết
  */
@@ -34,6 +36,7 @@ export async function seedInstructorData(dataSource: DataSource) {
   const lectureRepository = dataSource.getRepository(Lecture);
   const commentRepository = dataSource.getRepository(Comment);
   const feedbackRepository = dataSource.getRepository(Feedback);
+  const documentRepository = dataSource.getRepository(Document);
   const userRepository = dataSource.getRepository(User);
 
   // Get instructor1 (Lê Hoàng Nam)
@@ -285,6 +288,132 @@ export async function seedInstructorData(dataSource: DataSource) {
   const savedFeedbacks = await feedbackRepository.save(feedbacks);
   console.log(`⭐ Created ${savedFeedbacks.length} feedbacks`);
 
+  // Create documents for the course and lectures
+  const documentData = [
+    // Course-level documents
+    {
+      name: 'React Native Setup Guide.pdf',
+      notes: 'Hướng dẫn cài đặt môi trường React Native chi tiết',
+      descriptions: 'Tài liệu PDF hướng dẫn cài đặt môi trường development cho React Native trên Windows, macOS và Linux',
+      fileUrl: '/documents/course_react_native_setup_guide.pdf',
+      entityId: savedCourse.id,
+      entityType: DocumentEntityType.COURSE,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000), // 25 days ago
+    },
+    {
+      name: 'React Native Cheat Sheet.docx',
+      notes: 'Bảng tóm tắt các components và APIs quan trọng',
+      descriptions: 'Tài liệu Word tổng hợp các components, hooks và APIs thường dùng trong React Native',
+      fileUrl: '/documents/course_react_native_cheat_sheet.docx',
+      entityId: savedCourse.id,
+      entityType: DocumentEntityType.COURSE,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000), // 20 days ago
+    },
+    {
+      name: 'Project Source Code.zip',
+      notes: 'Source code hoàn chỉnh của dự án demo',
+      descriptions: 'File ZIP chứa toàn bộ source code của các dự án thực hành trong khóa học',
+      fileUrl: '/documents/course_project_source_code.zip',
+      entityId: savedCourse.id,
+      entityType: DocumentEntityType.COURSE,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
+    },
+    // Chapter-level documents
+    {
+      name: 'Chapter 1 - Setup Checklist.pdf',
+      notes: 'Checklist kiểm tra cài đặt môi trường',
+      descriptions: 'Danh sách kiểm tra để đảm bảo môi trường development được cài đặt đúng cách',
+      fileUrl: '/documents/chapter_1_setup_checklist.pdf',
+      entityId: savedChapters[0].id,
+      entityType: DocumentEntityType.CHAPTER,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000), // 18 days ago
+    },
+    {
+      name: 'Chapter 2 - Component Examples.docx',
+      notes: 'Ví dụ code các components cơ bản',
+      descriptions: 'Tài liệu chứa code mẫu và giải thích chi tiết về các components React Native',
+      fileUrl: '/documents/chapter_2_component_examples.docx',
+      entityId: savedChapters[1].id,
+      entityType: DocumentEntityType.CHAPTER,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
+    },
+    {
+      name: 'Chapter 3 - State Management Guide.pdf',
+      notes: 'Hướng dẫn quản lý state với hooks',
+      descriptions: 'Tài liệu chi tiết về useState, useEffect và các patterns quản lý state',
+      fileUrl: '/documents/chapter_3_state_management.pdf',
+      entityId: savedChapters[2].id,
+      entityType: DocumentEntityType.CHAPTER,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
+    },
+    // Lecture-level documents
+    {
+      name: 'CLI Installation Script.txt',
+      notes: 'Script tự động cài đặt React Native CLI',
+      descriptions: 'File script bash/batch để tự động cài đặt React Native CLI và dependencies',
+      fileUrl: '/documents/lecture_cli_installation_script.txt',
+      entityId: savedLectures[0].id,
+      entityType: DocumentEntityType.LECTURE,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+    },
+    {
+      name: 'First Project Template.zip',
+      notes: 'Template project cho bài học đầu tiên',
+      descriptions: 'Template project React Native cơ bản để học viên có thể bắt đầu nhanh chóng',
+      fileUrl: '/documents/lecture_first_project_template.zip',
+      entityId: savedLectures[1].id,
+      entityType: DocumentEntityType.LECTURE,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+    },
+    {
+      name: 'StyleSheet Examples.docx',
+      notes: 'Ví dụ về styling trong React Native',
+      descriptions: 'Tài liệu chứa các ví dụ về StyleSheet, Flexbox và responsive design',
+      fileUrl: '/documents/lecture_stylesheet_examples.docx',
+      entityId: savedLectures[2].id,
+      entityType: DocumentEntityType.LECTURE,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+    },
+    {
+      name: 'Navigation Setup Guide.pdf',
+      notes: 'Hướng dẫn cài đặt React Navigation',
+      descriptions: 'Tài liệu step-by-step cài đặt và cấu hình React Navigation v6',
+      fileUrl: '/documents/lecture_navigation_setup.pdf',
+      entityId: savedLectures[3].id,
+      entityType: DocumentEntityType.LECTURE,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+    },
+    {
+      name: 'Hooks Practice Exercises.pdf',
+      notes: 'Bài tập thực hành về React Hooks',
+      descriptions: 'Tập hợp các bài tập thực hành useState, useEffect và custom hooks',
+      fileUrl: '/documents/lecture_hooks_exercises.pdf',
+      entityId: savedLectures[4].id,
+      entityType: DocumentEntityType.LECTURE,
+      createdBy: instructor1.id,
+      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+    }
+  ];
+
+  const documents = [];
+  for (const docData of documentData) {
+    const document = documentRepository.create(docData);
+    documents.push(document);
+  }
+
+  const savedDocuments = await documentRepository.save(documents);
+  console.log(`📄 Created ${savedDocuments.length} documents`);
+
   // Update course statistics
   const avgRating = savedFeedbacks.reduce((acc, f) => acc + f.rating, 0) / savedFeedbacks.length;
   savedCourse.averageRating = Math.round(avgRating * 10) / 10;
@@ -298,4 +427,5 @@ export async function seedInstructorData(dataSource: DataSource) {
   console.log(`   - ${savedLectures.length} lectures`);
   console.log(`   - ${savedComments.length} comments (${replies.length} replies)`);
   console.log(`   - ${savedFeedbacks.length} feedbacks (avg: ${avgRating.toFixed(1)}⭐)`);
+  console.log(`   - ${savedDocuments.length} documents`);
 }
