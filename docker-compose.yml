@@ -85,6 +85,9 @@ services:
       - backend
     networks:
       - wishzy-network
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
 networks:
   wishzy-network:
