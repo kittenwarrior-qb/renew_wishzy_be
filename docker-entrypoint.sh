@@ -7,15 +7,10 @@ until nc -z postgres 5432; do
   sleep 1
 done
 
-echo "PostgreSQL is up - syncing migrations"
+echo "PostgreSQL is up - running migrations"
 
-# Sync migrations to database (mark existing migrations as run)
-npm run sync:migrations || echo "Sync migrations failed, continuing..."
-
-echo "Running pending migrations"
-
-# Run any new migrations
-npm run migration:run || echo "No pending migrations"
+# Run migrations directly from dist
+npx typeorm migration:run -d dist/database/data-source.js || echo "Migration failed or no pending migrations"
 
 echo "Migrations completed - starting application"
 
