@@ -5,10 +5,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Quiz } from '../../entities/quiz.entity';
 import { Question } from '../../entities/question.entity';
 import { AnswerOption } from '../../entities/answer-option.entity';
+import { Lecture } from '../../entities/lecture.entity';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 
@@ -21,6 +22,8 @@ export class QuizzesService {
     private readonly questionRepository: Repository<Question>,
     @InjectRepository(AnswerOption)
     private readonly answerOptionRepository: Repository<AnswerOption>,
+    @InjectRepository(Lecture)
+    private readonly lectureRepository: Repository<Lecture>,
   ) {}
 
   async create(createQuizDto: CreateQuizDto, creatorId: string): Promise<Quiz> {
@@ -77,16 +80,22 @@ export class QuizzesService {
   }
 
   async findAll(page: number = 1, limit: number = 10, isPublic?: boolean) {
+    // Convert to numbers in case they come as strings from query params
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+
     const query = this.quizRepository
       .createQueryBuilder('quiz')
       .leftJoinAndSelect('quiz.creator', 'creator')
       .leftJoinAndSelect('quiz.questions', 'questions')
+      // Chỉ lấy các quizzes không có entityId (không phải bài kiểm tra khóa học)
+      .where('quiz.entity_id IS NULL')
       .orderBy('quiz.createdAt', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit);
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum);
 
     if (isPublic !== undefined) {
-      query.where('quiz.isPublic = :isPublic', { isPublic });
+      query.andWhere('quiz.isPublic = :isPublic', { isPublic });
     }
 
     const [quizzes, total] = await query.getManyAndCount();
@@ -94,9 +103,9 @@ export class QuizzesService {
     return {
       data: quizzes,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
     };
   }
 
@@ -144,7 +153,27 @@ export class QuizzesService {
   async findByCreator(creatorId: string): Promise<Quiz[]> {
     return this.quizRepository.find({
       where: { creatorId },
-      relations: ['questions'],
+      relations: ['questions', 'lecture'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * Lấy tất cả quizzes gắn với một lecture cụ thể
+   */
+  async findByLecture(lectureId: string): Promise<Quiz[]> {
+    // Kiểm tra lecture có tồn tại không
+    const lecture = await this.lectureRepository.findOne({
+      where: { id: lectureId },
+    });
+
+    if (!lecture) {
+      throw new NotFoundException(`Lecture with ID ${lectureId} not found`);
+    }
+
+    return this.quizRepository.find({
+      where: { entityId: lectureId },
+      relations: ['creator', 'questions', 'questions.answerOptions'],
       order: { createdAt: 'DESC' },
     });
   }

@@ -56,6 +56,15 @@ export class QuizzesController {
     return this.quizzesService.findByCreator(req.user.id);
   }
 
+  @Get('lecture/:lectureId')
+  @Public()
+  @ApiOperation({ summary: 'Get quizzes by lecture ID (course quizzes)' })
+  @ApiResponse({ status: 200, description: 'Quizzes for the lecture' })
+  @ApiResponse({ status: 404, description: 'Lecture not found' })
+  findByLecture(@Param('lectureId') lectureId: string) {
+    return this.quizzesService.findByLecture(lectureId);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get quiz details (without correct answers for taking quiz)' })
   @ApiResponse({ status: 200, description: 'Quiz found' })

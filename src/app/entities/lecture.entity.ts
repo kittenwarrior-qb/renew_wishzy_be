@@ -4,11 +4,13 @@ import {
   DeleteDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   JoinColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Chapter } from './chapter.entity';
+import type { Chapter } from './chapter.entity';
+import type { Quiz } from './quiz.entity';
 
 @Entity('lectures')
 export class Lecture {
@@ -51,7 +53,10 @@ export class Lecture {
   @DeleteDateColumn({ type: 'timestamp', name: 'deleted_at', nullable: true })
   deletedAt?: Date;
 
-  @ManyToOne(() => Chapter)
+  @ManyToOne('Chapter')
   @JoinColumn({ name: 'chapter_id' })
   chapter?: Chapter;
+
+  @OneToMany('Quiz', (quiz: Quiz) => quiz.lecture)
+  quizzes?: Quiz[];
 }

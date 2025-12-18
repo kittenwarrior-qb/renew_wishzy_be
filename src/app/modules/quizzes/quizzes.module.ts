@@ -9,9 +9,10 @@ import { Question } from '../../entities/question.entity';
 import { AnswerOption } from '../../entities/answer-option.entity';
 import { QuizAttempt } from '../../entities/quiz-attempt.entity';
 import { UserAnswer } from '../../entities/user-answer.entity';
+import { Lecture } from '../../entities/lecture.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Quiz, Question, AnswerOption, QuizAttempt, UserAnswer])],
+  imports: [TypeOrmModule.forFeature([Quiz, Question, AnswerOption, QuizAttempt, UserAnswer, Lecture])],
   controllers: [QuizzesController, QuizAttemptsController],
   providers: [QuizzesService, QuizAttemptsService],
   exports: [QuizzesService, QuizAttemptsService],

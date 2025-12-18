@@ -8,6 +8,7 @@ import {
   IsInt,
   IsArray,
   ValidateNested,
+  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -71,6 +72,14 @@ export class CreateQuizDto {
   @IsOptional()
   @Min(1)
   timeLimit?: number;
+
+  @ApiPropertyOptional({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'ID của lecture mà quiz được gắn kèm (nếu có). Quiz với entityId sẽ là bài kiểm tra của khóa học.',
+  })
+  @IsOptional()
+  @IsUUID()
+  entityId?: string;
 
   @ApiProperty({
     type: [CreateQuestionDto],

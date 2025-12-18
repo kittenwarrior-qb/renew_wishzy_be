@@ -11,7 +11,7 @@ import {
 } from 'typeorm';
 import { ApiHideProperty } from '@nestjs/swagger';
 import { Course } from './course.entity';
-import { Lecture } from './lecture.entity';
+import type { Lecture } from './lecture.entity';
 
 @Entity('chapters')
 export class Chapter {
@@ -50,8 +50,6 @@ export class Chapter {
   @JoinColumn({ name: 'course_id' })
   course?: Course;
 
-  // @ApiHideProperty()
-  // @OneToMany('Lecture', 'chapter', { onDelete: 'CASCADE' })
-  // @JoinColumn({ name: 'chapter_id' })
-  // lecture?: Lecture[];
+  @OneToMany('Lecture', (lecture: Lecture) => lecture.chapter)
+  lectures?: Lecture[];
 }

@@ -43,6 +43,8 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .leftJoinAndSelect('chapter.lectures', 'lecture')
+      .leftJoinAndSelect('lecture.quizzes', 'quiz')
       .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks');
     if (categoryId) {
       queryBuilder.andWhere('course.categoryId = :categoryId', { categoryId });
@@ -100,8 +102,12 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email', 'creator.avatar'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .leftJoinAndSelect('chapter.lectures', 'lecture')
+      .leftJoinAndSelect('lecture.quizzes', 'quiz')
       .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks')
       .where('course.id = :id', { id })
+      .orderBy('chapter.orderIndex', 'ASC')
+      .addOrderBy('lecture.orderIndex', 'ASC')
       .getOne();
 
     if (!course) {
@@ -137,6 +143,8 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .leftJoinAndSelect('chapter.lectures', 'lecture')
+      .leftJoinAndSelect('lecture.quizzes', 'quiz')
       .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks')
       .where('course.status = :status', { status: true })
       .orderBy('course.averageRating', 'DESC')
@@ -168,6 +176,8 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .leftJoinAndSelect('chapter.lectures', 'lecture')
+      .leftJoinAndSelect('lecture.quizzes', 'quiz')
       .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks')
       .where('course.createdBy = :instructorId', { instructorId })
       .orderBy('course.createdAt', 'DESC')
@@ -209,6 +219,8 @@ export class CoursesService {
       .leftJoin('course.creator', 'creator')
       .addSelect(['creator.id', 'creator.fullName', 'creator.email'])
       .leftJoinAndSelect('course.chapters', 'chapter')
+      .leftJoinAndSelect('chapter.lectures', 'lecture')
+      .leftJoinAndSelect('lecture.quizzes', 'quiz')
       .loadRelationCountAndMap('course.reviewCount', 'course.feedbacks')
       .where('course.status = :status', { status: true })
       .andWhere("course.sale_info->>'saleStartDate' IS NOT NULL")

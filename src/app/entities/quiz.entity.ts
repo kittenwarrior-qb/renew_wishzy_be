@@ -11,6 +11,7 @@ import {
 import { User } from './user.entity';
 import type { Question } from './question.entity';
 import type { QuizAttempt } from './quiz-attempt.entity';
+import type { Lecture } from './lecture.entity';
 
 @Entity('quizzes')
 export class Quiz {
@@ -19,6 +20,9 @@ export class Quiz {
 
   @Column({ type: 'uuid', name: 'creator_id' })
   creatorId: string;
+
+  @Column({ type: 'uuid', name: 'entity_id', nullable: true })
+  entityId?: string;
 
   @Column({ type: 'varchar', length: 255 })
   title: string;
@@ -53,6 +57,10 @@ export class Quiz {
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'creator_id' })
   creator: User;
+
+  @ManyToOne('Lecture', { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'entity_id' })
+  lecture?: Lecture;
 
   @OneToMany('Question', (question: Question) => question.quiz, { cascade: true })
   questions: Question[];
