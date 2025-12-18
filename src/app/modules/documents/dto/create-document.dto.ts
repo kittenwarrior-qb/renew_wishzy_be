@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
 import { DocumentEntityType } from 'src/app/entities/document.entity';
 
 export class CreateDocumentDto {
@@ -22,6 +22,11 @@ export class CreateDocumentDto {
   @IsString()
   @IsOptional()
   fileUrl?: string;
+
+  @ApiPropertyOptional({ example: 2048576, description: 'File size in bytes' })
+  @IsNumber()
+  @IsOptional()
+  size?: number;
 
   @ApiProperty({ example: 'Document entity id' })
   @IsUUID()

@@ -119,6 +119,40 @@ export class DocumentsController {
     };
   }
 
+  @Get('instructor/:id/download')
+  @Roles(UserRole.INSTRUCTOR)
+  @ApiOperation({
+    summary: 'Download document file for instructor',
+    description: 'Download a document file that the instructor has uploaded to their courses.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Document file download URL',
+    schema: {
+      example: {
+        message: 'Document download URL retrieved successfully',
+        downloadUrl: 'https://cloudinary.com/...',
+        fileName: 'Course_Material.pdf',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Not instructor\'s document' })
+  @ApiResponse({ status: 404, description: 'Document not found' })
+  async downloadInstructorDocument(
+    @Param('id') documentId: string,
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.documentsService.getInstructorDocumentDownloadUrl(
+      documentId,
+      user.id,
+    );
+    return {
+      message: 'Document download URL retrieved successfully',
+      ...result,
+    };
+  }
+
   @Get(':id')
   @Public()
   async findOne(@Param('id') id: string) {
