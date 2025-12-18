@@ -35,6 +35,18 @@ export class ChaptersController {
     };
   }
 
+  @Get('course/:courseId/enrolled')
+  async findAllChapterOfCourseForEnrolled(
+    @Param('courseId') courseId: string,
+    @CurrentUser() user: User,
+  ) {
+    const chapters = await this.chaptersService.findAllChapterOfCourseForEnrolled(courseId, user.id);
+    return {
+      message: 'Chapters retrieved successfully',
+      items: chapters,
+    };
+  }
+
   @Get(':id')
   @Public()
   async findOne(@Param('id') id: string) {
