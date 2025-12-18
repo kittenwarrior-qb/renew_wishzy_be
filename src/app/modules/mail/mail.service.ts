@@ -13,9 +13,14 @@ export class MailService {
   async sendVerificationEmail(email: string, token: string, fullName: string) {
     try {
       const verificationUrl = `${this.configService.get<string>('FRONTEND_URL')}/auth/verify-email?token=${token}`;
+      const mailFrom = this.configService.get<string>('MAIL_FROM');
+      
+      // Debug log
+      console.log('Sending email with MAIL_FROM:', mailFrom);
+      console.log('Full from address:', `Wishzy <${mailFrom}>`);
 
       const result = await this.resend.emails.send({
-        from: `Wishzy <${this.configService.get<string>('MAIL_FROM')}>`,
+        from: `Wishzy <${mailFrom}>`,
         to: [email],
         subject: 'Verify Your Email - Wishzy',
         html: `
