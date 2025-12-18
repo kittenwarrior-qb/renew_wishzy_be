@@ -129,4 +129,50 @@ export class DocumentsService {
       },
     };
   }
+
+  async getInstructorDocumentDownloadUrl(
+    documentId: string,
+    instructorId: string,
+  ): Promise<{ downloadUrl: string; fileName: string }> {
+    // Find document and verify it belongs to instructor's courses
+    const document = await this.documentRepository
+      .createQueryBuilder('document')
+      .where('document.id = :documentId', { documentId })
+      .andWhere(
+        `(
+          (document.entityType = 'course' AND document.entityId IN (
+            SELECT id FROM courses WHERE created_by = :instructorId
+          ))
+          OR
+          (document.entityType = 'chapter' AND document.entityId IN (
+            SELECT id FROM chapters WHERE course_id IN (
+              SELECT id FROM courses WHERE created_by = :instructorId
+            )
+          ))
+          OR
+          (document.entityType = 'lecture' AND document.entityId IN (
+            SELECT id FROM lectures WHERE chapter_id IN (
+              SELECT id FROM chapters WHERE course_id IN (
+                SELECT id FROM courses WHERE created_by = :instructorId
+              )
+            )
+          ))
+        )`,
+        { instructorId },
+      )
+      .getOne();
+
+    if (!document) {
+      throw new BadRequestException('Document not found or you do not have permission to access it');
+    }
+
+    if (!document.fileUrl) {
+      throw new BadRequestException('Document does not have a file URL');
+    }
+
+    return {
+      downloadUrl: document.fileUrl,
+      fileName: document.name,
+    };
+  }
 }
