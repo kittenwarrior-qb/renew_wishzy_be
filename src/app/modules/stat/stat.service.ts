@@ -20,6 +20,7 @@ import { TopStudentsQueryDto, TopStudentsSortBy } from './dto/top-students-query
 import { TopStudentsResponseDto, TopStudentItemDto } from './dto/top-students-response.dto';
 import { TopInstructorsQueryDto, TopInstructorsSortBy } from './dto/top-instructors-query.dto';
 import { TopInstructorsResponseDto, TopInstructorItemDto } from './dto/top-instructors-response.dto';
+import { SystemSettingsService } from '../system-settings/system-settings.service';
 
 @Injectable()
 export class StatService {
@@ -36,6 +37,7 @@ export class StatService {
     private feedbackRepository: Repository<Feedback>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private readonly systemSettingsService: SystemSettingsService,
   ) {}
 
   async getHotCourses(query: HotCoursesQueryDto): Promise<HotCoursesResponseDto> {
@@ -292,6 +294,11 @@ export class StatService {
       return dataPoint;
     });
 
+    // Get instructor revenue percentage for calculating shares
+    const instructorPercentage = await this.systemSettingsService.getInstructorRevenuePercentage();
+    const systemRevenue = Math.round(totalRevenue * (100 - instructorPercentage) / 100);
+    const instructorRevenue = Math.round(totalRevenue * instructorPercentage / 100);
+
     return {
       mode,
       totalRevenue,
@@ -301,6 +308,9 @@ export class StatService {
       totalCourses,
       averageRevenuePerCourse: Math.round(averageRevenuePerCourse),
       growthRate: Math.round(growthRate * 10) / 10, // Round to 1 decimal place
+      instructorPercentage,
+      systemRevenue,
+      instructorRevenue,
       details: data,
       startDate,
       endDate,
@@ -411,14 +421,22 @@ export class StatService {
       courseRevenues.map((r: any) => [r.courseId, parseFloat(r.revenue || '0')]),
     );
 
-    const courses: InstructorCourseDto[] = coursesData.map((course: any) => ({
-      courseId: course.courseId,
-      courseName: course.courseName,
-      studentCount: parseInt(course.studentCount || '0'),
-      revenue: revenueMap.get(course.courseId) || 0,
-      averageRating: parseFloat(course.averageRating || '0'),
-      commentCount: parseInt(course.commentCount || '0'),
-    }));
+    // Get instructor revenue percentage
+    const instructorPercentage = Number(await this.systemSettingsService.getInstructorRevenuePercentage());
+
+    const courses: InstructorCourseDto[] = coursesData.map((course: any) => {
+      const grossRevenue = revenueMap.get(course.courseId) || 0;
+      const revenue = Math.round((grossRevenue as number) * instructorPercentage / 100);
+      return {
+        courseId: course.courseId,
+        courseName: course.courseName,
+        studentCount: parseInt(course.studentCount || '0'),
+        grossRevenue,
+        revenue,
+        averageRating: parseFloat(course.averageRating || '0'),
+        commentCount: parseInt(course.commentCount || '0'),
+      };
+    });
 
     // Lấy feedbacks gần đây
     const recentFeedbacksData = await this.feedbackRepository.query(
@@ -449,10 +467,17 @@ export class StatService {
       createdAt: feedback.createdAt,
     }));
 
+    // Calculate gross and net revenue
+    const grossRevenue = totalRevenue; // totalRevenue is already the gross amount
+    const netRevenue = Math.round(grossRevenue * instructorPercentage / 100);
+
     return {
       totalCourses,
       totalStudents,
-      totalRevenue,
+      grossRevenue,
+      netRevenue,
+      totalRevenue: netRevenue, // Keep backward compatibility
+      instructorPercentage,
       totalComments: totalFeedbacks,
       overallRating: Math.round(overallRating * 10) / 10,
       courses,

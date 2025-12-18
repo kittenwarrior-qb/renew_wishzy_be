@@ -10,7 +10,10 @@ export class InstructorCourseDto {
   @ApiProperty({ description: 'Số học viên đã đăng ký' })
   studentCount!: number;
 
-  @ApiProperty({ description: 'Doanh thu từ khóa học' })
+  @ApiProperty({ description: 'Doanh thu gộp từ khóa học (trước chia)' })
+  grossRevenue!: number;
+
+  @ApiProperty({ description: 'Doanh thu thực nhận từ khóa học (sau chia theo tỉ lệ)' })
   revenue!: number;
 
   @ApiProperty({ description: 'Đánh giá trung bình' })
@@ -47,8 +50,17 @@ export class InstructorStatsResponseDto {
   @ApiProperty({ description: 'Tổng số học viên' })
   totalStudents!: number;
 
-  @ApiProperty({ description: 'Tổng doanh thu' })
+  @ApiProperty({ description: 'Doanh thu gộp (trước chia)' })
+  grossRevenue!: number;
+
+  @ApiProperty({ description: 'Doanh thu thực nhận (sau chia) = netRevenue' })
+  netRevenue!: number;
+
+  @ApiProperty({ description: 'Tổng doanh thu thực nhận (alias của netRevenue để backward compatible)' })
   totalRevenue!: number;
+
+  @ApiProperty({ description: 'Tỉ lệ phần trăm instructor nhận được' })
+  instructorPercentage!: number;
 
   @ApiProperty({ description: 'Tổng số bình luận/câu hỏi' })
   totalComments!: number;
