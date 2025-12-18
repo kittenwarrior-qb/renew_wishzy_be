@@ -57,9 +57,9 @@ import { SystemSettingsModule } from './modules/system-settings/system-settings.
         MAIL_HOST: Joi.string().default('smtp.gmail.com'),
         MAIL_PORT: Joi.number().default(587),
         MAIL_SECURE: Joi.boolean().default(false),
-        MAIL_USER: Joi.string().required(),
-        MAIL_PASSWORD: Joi.string().required(),
-        MAIL_FROM: Joi.string().default('noreply@wishzy.com'),
+        MAIL_USER: Joi.string().optional().allow(''),
+        MAIL_PASSWORD: Joi.string().optional().allow(''),
+        MAIL_FROM: Joi.string().default('noreply@wishzy.io.vn'),
         FRONTEND_URL: Joi.string().default('http://localhost:3001'),
       }),
     }),
@@ -100,8 +100,11 @@ import { SystemSettingsModule } from './modules/system-settings/system-settings.
     StatModule,
     LectureNotesModule,
     InstructorModule,
+<<<<<<< HEAD
+=======
     SystemSettingsModule,
 
+>>>>>>> 81332f61d7a5c06974fd24a105acd14a8d561a04
   ],
   providers: [
     // Global Guards
