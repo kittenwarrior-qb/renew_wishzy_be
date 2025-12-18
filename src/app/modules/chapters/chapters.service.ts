@@ -1,16 +1,18 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, ForbiddenException } from '@nestjs/common';
 import { CreateChapterDto } from './dto/create-chapter.dto';
 import { UpdateChapterDto } from './dto/update-chapter.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Chapter } from 'src/app/entities/chapter.entity';
 import { Repository } from 'typeorm';
 import { Course } from 'src/app/entities/course.entity';
+import { Enrollment } from 'src/app/entities/enrollment.entity';
 
 @Injectable()
 export class ChaptersService {
   constructor(
     @InjectRepository(Chapter) private readonly chapterRepository: Repository<Chapter>,
     @InjectRepository(Course) private readonly courseRepository: Repository<Course>,
+    @InjectRepository(Enrollment) private readonly enrollmentRepository: Repository<Enrollment>,
   ) {}
 
   private async validateCourse(courseId: string): Promise<void> {
@@ -164,5 +166,58 @@ export class ChaptersService {
 
   async remove(id: string): Promise<void> {
     await this.chapterRepository.softDelete(id);
+  }
+
+  async findAllChapterOfCourseForEnrolled(courseId: string, userId: string): Promise<Chapter[]> {
+    // Check if user is enrolled in this course
+    const enrollment = await this.enrollmentRepository.findOne({
+      where: { courseId, userId },
+    });
+
+    if (!enrollment) {
+      throw new ForbiddenException('You are not enrolled in this course');
+    }
+
+    const chapters = await this.chapterRepository
+      .createQueryBuilder('chapter')
+      .leftJoinAndSelect('chapter.course', 'course')
+      .leftJoin(
+        'lectures',
+        'lecture',
+        'lecture.chapter_id = chapter.id AND lecture.deleted_at IS NULL',
+      )
+      .select(['chapter', 'course.id', 'course.name'])
+      .addSelect('lecture.id', 'lecture_id')
+      .addSelect('lecture.name', 'lecture_name')
+      .addSelect('lecture.duration', 'lecture_duration')
+      .addSelect('lecture.is_preview', 'lecture_is_preview')
+      .addSelect('lecture.order_index', 'lecture_order_index')
+      .addSelect('lecture.file_url', 'lecture_file_url')
+      .where('chapter.course_id = :courseId', { courseId })
+      .getRawAndEntities();
+
+    const result = chapters.entities
+      .map((chapter) => {
+        const lecturesForChapter = chapters.raw
+          .filter((raw) => raw.chapter_id === chapter.id && raw.lecture_id !== null)
+          .map((raw) => ({
+            id: raw.lecture_id,
+            name: raw.lecture_name,
+            duration: raw.lecture_duration,
+            isPreview: raw.lecture_is_preview,
+            orderIndex: raw.lecture_order_index,
+            // Return fileUrl for enrolled users (they have access to all videos)
+            fileUrl: raw.lecture_file_url,
+          }))
+          .sort((a, b) => a.orderIndex - b.orderIndex);
+
+        return {
+          ...chapter,
+          lecture: lecturesForChapter,
+        };
+      })
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+
+    return result as Chapter[];
   }
 }
