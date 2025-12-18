@@ -28,6 +28,7 @@ import { QuizzesModule } from './modules/quizzes/quizzes.module';
 import { StatModule } from './modules/stat/stat.module';
 import { LectureNotesModule } from './modules/lecture-notes/lecture-notes.module';
 import { InstructorModule } from './modules/instructor/instructor.module';
+import { SystemSettingsModule } from './modules/system-settings/system-settings.module';
 
 
 @Module({
@@ -99,6 +100,11 @@ import { InstructorModule } from './modules/instructor/instructor.module';
     StatModule,
     LectureNotesModule,
     InstructorModule,
+<<<<<<< HEAD
+=======
+    SystemSettingsModule,
+
+>>>>>>> 81332f61d7a5c06974fd24a105acd14a8d561a04
   ],
   providers: [
     // Global Guards

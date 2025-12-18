@@ -83,6 +83,24 @@ export class RevenueResponseDto {
   growthRate!: number;
 
   @ApiProperty({ 
+    description: 'Tỉ lệ phần trăm instructor nhận được',
+    example: 70
+  })
+  instructorPercentage!: number;
+
+  @ApiProperty({ 
+    description: 'Doanh thu hệ thống giữ lại (totalRevenue * (100 - instructorPercentage) / 100)',
+    example: 45000000
+  })
+  systemRevenue!: number;
+
+  @ApiProperty({ 
+    description: 'Tổng doanh thu trả cho instructor (totalRevenue * instructorPercentage / 100)',
+    example: 105000000
+  })
+  instructorRevenue!: number;
+
+  @ApiProperty({ 
     description: 'Dữ liệu theo từng khoảng thời gian',
     type: [RevenueDataPointDto]
   })
