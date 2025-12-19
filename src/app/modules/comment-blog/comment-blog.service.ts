@@ -20,6 +20,26 @@ export class CommentBlogService {
         return await this.commentBlogRepository.save(comment);
     }
 
+    async findAll(filter: FilterCommentBlogDto): Promise<PaginationResponse<CommentBlog>> {
+        const { page = 1, limit = 10 } = filter;
+        const [comments, total] = await this.commentBlogRepository.findAndCount({
+            relations: ['user', 'blog'],
+            order: { createdAt: 'DESC' },
+            skip: (Number(page) - 1) * Number(limit),
+            take: Number(limit),
+        });
+
+        return {
+            items: comments,
+            pagination: {
+                totalPage: Math.ceil(total / Number(limit)),
+                totalItems: total,
+                currentPage: Number(page),
+                itemsPerPage: Number(limit),
+            },
+        };
+    }
+
     async findByBlog(blogId: string, filter: FilterCommentBlogDto): Promise<PaginationResponse<CommentBlog>> {
         const { page = 1, limit = 10 } = filter;
 

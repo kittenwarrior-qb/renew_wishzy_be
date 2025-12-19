@@ -18,6 +18,13 @@ export class CommentBlogController {
         return this.commentBlogService.create(createDto, user.id);
     }
 
+    @Get()
+    @ApiBearerAuth('bearer')
+    @ApiOperation({ summary: 'Get all comments' })
+    findAll(@Query() filter: FilterCommentBlogDto) {
+        return this.commentBlogService.findAll(filter);
+    }
+
     @Get('blog/:blogId')
     @Public()
     @ApiOperation({ summary: 'Get comments for a blog' })
