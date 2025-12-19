@@ -1,4 +1,5 @@
-import { IsNotEmpty, IsOptional, IsString, IsBoolean } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsBoolean, IsInt, Min } from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateBlogDto {
@@ -68,10 +69,16 @@ export class UpdateBlogDto {
 export class FilterBlogDto {
     @ApiPropertyOptional()
     @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
     page?: number;
 
     @ApiPropertyOptional()
     @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
     limit?: number;
 
     @ApiPropertyOptional()
@@ -86,6 +93,11 @@ export class FilterBlogDto {
 
     @ApiPropertyOptional()
     @IsOptional()
+    @Transform(({ value }) => {
+        if (value === 'true' || value === true) return true;
+        if (value === 'false' || value === false) return false;
+        return value;
+    })
     @IsBoolean()
     isActive?: boolean;
 }
