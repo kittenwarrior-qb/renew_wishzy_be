@@ -22,7 +22,7 @@ import { User, UserRole } from 'src/app/entities/user.entity';
 @ApiBearerAuth('bearer')
 @ApiTags('Comments')
 export class CommentsController {
-  constructor(private readonly commentsService: CommentsService) {}
+  constructor(private readonly commentsService: CommentsService) { }
 
   @Post()
   @ApiOperation({

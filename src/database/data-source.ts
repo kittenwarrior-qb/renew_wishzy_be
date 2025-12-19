@@ -52,28 +52,28 @@ export const typeOrmAsyncConfig: TypeOrmModuleAsyncOptions = {
  */
 export const dataSourceOptions: DataSourceOptions = process.env.DB_URL
   ? {
-      type: 'postgres',
-      url: process.env.DB_URL,
-      entities: ['dist/**/*.entity.js'],
-      synchronize: false,
-      logging: process.env.NODE_ENV === 'development',
-      migrations: ['dist/database/migrations/*.js'],
-      ssl: {
-        rejectUnauthorized: false,
-      },
-    }
+    type: 'postgres',
+    url: process.env.DB_URL,
+    entities: ['dist/**/*.entity.js'],
+    synchronize: false,
+    logging: process.env.NODE_ENV === 'development',
+    migrations: ['dist/database/migrations/*.js'],
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  }
   : {
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USERNAME,
-      database: process.env.DB_NAME,
-      password: process.env.DB_PASSWORD,
-      entities: ['dist/**/*.entity.js'],
-      synchronize: false,
-      logging: process.env.NODE_ENV === 'development',
-      migrations: ['dist/database/migrations/*.js'],
-    };
+    type: 'postgres',
+    host: process.env.DB_HOST,
+    port: parseInt(process.env.DB_PORT) || 5432,
+    username: process.env.DB_USERNAME,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    entities: ['dist/**/*.entity.js'],
+    synchronize: false,
+    logging: process.env.NODE_ENV === 'development',
+    migrations: ['dist/database/migrations/*.js'],
+  };
 
 // Data source instance for TypeORM CLI
 const dataSource = new DataSource(dataSourceOptions);
