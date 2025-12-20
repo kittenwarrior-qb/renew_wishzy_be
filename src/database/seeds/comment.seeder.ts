@@ -13,12 +13,28 @@ export async function seedComments(dataSource: DataSource) {
 
   // Get users and lectures
   const users = await dataSource.query("SELECT id FROM users WHERE role = 'user' LIMIT 20");
-  const lectures = await dataSource.query('SELECT id FROM lectures LIMIT 100');
+  const allLectures = await dataSource.query('SELECT id FROM lectures LIMIT 100');
+  
+  // Get instructor1's courses and their lectures for specific testing
+  const instructor1Lectures = await dataSource.query(`
+    SELECT l.id 
+    FROM lectures l
+    JOIN chapters c ON l.chapter_id = c.id
+    JOIN courses co ON c.course_id = co.id
+    JOIN users u ON co.created_by = u.id
+    WHERE u.email = 'instructor1@example.com'
+    LIMIT 50
+  `);
 
+  const lectures = [...allLectures];
+  
   if (users.length === 0 || lectures.length === 0) {
     console.log('⚠️  Users or lectures not found. Please seed them first.');
     return;
   }
+  
+  console.log(`📊 Found ${users.length} users, ${lectures.length} lectures (${instructor1Lectures.length} from instructor1)`);
+
 
   // Sample review contents in Vietnamese
   const positiveComments = [
@@ -55,9 +71,19 @@ export async function seedComments(dataSource: DataSource) {
   const numberOfReplies = 20;
 
   // Create parent comments first
+  // First 30 comments will be on instructor1's lectures for testing
+  const instructor1CommentCount = Math.min(30, instructor1Lectures.length > 0 ? 30 : 0);
+  
   for (let i = 0; i < numberOfParentComments; i++) {
     const user = users[Math.floor(Math.random() * users.length)];
-    const lecture = lectures[Math.floor(Math.random() * lectures.length)];
+    
+    // Use instructor1's lectures for first 30 comments, then random
+    let lecture;
+    if (i < instructor1CommentCount && instructor1Lectures.length > 0) {
+      lecture = instructor1Lectures[i % instructor1Lectures.length];
+    } else {
+      lecture = lectures[Math.floor(Math.random() * lectures.length)];
+    }
 
     // Determine comment type
     const random = Math.random();

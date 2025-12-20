@@ -20,6 +20,20 @@ import { User, UserRole } from '../../entities/user.entity';
 export class StatController {
   constructor(private readonly statService: StatService) {}
 
+  @Get('dashboard-summary')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ 
+    summary: 'Lấy thống kê tổng quan cho dashboard',
+    description: 'Trả về số học viên, giảng viên, khóa học và đơn hàng hôm nay'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Lấy thống kê thành công'
+  })
+  async getDashboardSummary() {
+    return this.statService.getDashboardSummary();
+  }
+
   @Get('hot-courses')
   @ApiOperation({ 
     summary: 'Lấy danh sách khóa học hot nhất',
@@ -115,6 +129,20 @@ export class StatController {
   })
   async getTopInstructors(@Query() query: TopInstructorsQueryDto): Promise<TopInstructorsResponseDto> {
     return this.statService.getTopInstructors(query);
+  }
+
+  @Get('top-courses-by-revenue')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ 
+    summary: 'Lấy danh sách khóa học theo doanh thu',
+    description: 'Thống kê các khóa học theo tổng doanh thu, bao gồm số học viên đang theo học (chỉ dành cho Admin)'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Lấy danh sách khóa học theo doanh thu thành công'
+  })
+  async getTopCoursesByRevenue(@Query('limit') limit: number = 10) {
+    return this.statService.getTopCoursesByRevenue(limit);
   }
 
 }

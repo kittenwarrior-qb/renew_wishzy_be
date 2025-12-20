@@ -40,6 +40,57 @@ export class StatService {
     private readonly systemSettingsService: SystemSettingsService,
   ) {}
 
+  /**
+   * Lấy thống kê tổng quan cho admin dashboard
+   * @returns Số học viên, giảng viên, khóa học và đơn hàng hôm nay
+   */
+  async getDashboardSummary(): Promise<{
+    totalStudents: number;
+    totalInstructors: number;
+    totalCourses: number;
+    todayOrders: number;
+    todayRevenue: number;
+  }> {
+    // Đếm học viên (role = user)
+    const totalStudents = await this.userRepository.count({
+      where: { role: UserRole.USER },
+    });
+
+    // Đếm giảng viên (role = instructor)
+    const totalInstructors = await this.userRepository.count({
+      where: { role: UserRole.INSTRUCTOR },
+    });
+
+    // Đếm khóa học
+    const totalCourses = await this.courseRepository.count({
+      where: { deletedAt: null } as any,
+    });
+
+    // Đếm đơn hàng hôm nay
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const todayOrdersData = await this.orderRepository
+      .createQueryBuilder('order')
+      .select('COUNT(order.id)', 'count')
+      .addSelect('COALESCE(SUM(order.totalPrice), 0)', 'revenue')
+      .where('order.status = :status', { status: OrderStatus.COMPLETED })
+      .andWhere('order.createdAt >= :today', { today })
+      .andWhere('order.createdAt < :tomorrow', { tomorrow })
+      .getRawOne();
+
+    return {
+      totalStudents,
+      totalInstructors,
+      totalCourses,
+      todayOrders: parseInt(todayOrdersData?.count || '0'),
+      todayRevenue: parseFloat(todayOrdersData?.revenue || '0'),
+    };
+  }
+
+
   async getHotCourses(query: HotCoursesQueryDto): Promise<HotCoursesResponseDto> {
     const { page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
@@ -609,6 +660,74 @@ export class StatService {
       courses: parseInt(instructor.courses || '0'),
       students: parseInt(instructor.students || '0'),
       specialties: instructor.specialties || [],
+    }));
+
+    return { data, total };
+  }
+
+  /**
+   * Lấy danh sách khóa học theo doanh thu
+   * @param limit - Số lượng khóa học trả về
+   * @returns Danh sách khóa học với thống kê doanh thu và số học viên
+   */
+  async getTopCoursesByRevenue(limit: number = 10): Promise<{
+    data: {
+      courseId: string;
+      courseName: string;
+      thumbnail: string | null;
+      instructorName: string;
+      totalStudents: number;
+      totalRevenue: number;
+    }[];
+    total: number;
+  }> {
+    // Query để lấy doanh thu và học viên theo khóa học
+    const coursesData = await this.courseRepository.query(
+      `
+      SELECT 
+        c.id as "courseId",
+        c.name as "courseName",
+        c.thumbnail,
+        u.full_name as "instructorName",
+        COUNT(DISTINCT e.user_id) as "totalStudents",
+        COALESCE(SUM(CASE WHEN o.status = 'completed' THEN od.price ELSE 0 END), 0) as "totalRevenue"
+      FROM courses c
+      LEFT JOIN users u ON u.id = c.created_by
+      LEFT JOIN enrollments e ON e.course_id = c.id
+      LEFT JOIN detail_orders od ON od.course_id = c.id
+      LEFT JOIN orders o ON o.id = od.order_id
+      WHERE c.deleted_at IS NULL
+      GROUP BY c.id, c.name, c.thumbnail, u.full_name
+      HAVING COALESCE(SUM(CASE WHEN o.status = 'completed' THEN od.price ELSE 0 END), 0) > 0
+      ORDER BY "totalRevenue" DESC
+      LIMIT $1
+      `,
+      [limit],
+    );
+
+    // Đếm tổng số khóa học có doanh thu
+    const totalData = await this.courseRepository.query(
+      `
+      SELECT COUNT(*) as total FROM (
+        SELECT c.id
+        FROM courses c
+        LEFT JOIN detail_orders od ON od.course_id = c.id
+        LEFT JOIN orders o ON o.id = od.order_id
+        WHERE c.deleted_at IS NULL
+        GROUP BY c.id
+        HAVING COALESCE(SUM(CASE WHEN o.status = 'completed' THEN od.price ELSE 0 END), 0) > 0
+      ) subquery
+      `,
+    );
+    const total = parseInt(totalData[0]?.total || '0');
+
+    const data = coursesData.map((course: any) => ({
+      courseId: course.courseId,
+      courseName: course.courseName || 'Unknown',
+      thumbnail: course.thumbnail,
+      instructorName: course.instructorName || 'Unknown',
+      totalStudents: parseInt(course.totalStudents || '0'),
+      totalRevenue: parseFloat(course.totalRevenue || '0'),
     }));
 
     return { data, total };
