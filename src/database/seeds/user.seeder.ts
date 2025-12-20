@@ -171,6 +171,21 @@ export async function seedUsers(dataSource: DataSource) {
       address: 'Thanh Xuân, Hà Nội',
       avatar: 'https://i.pravatar.cc/300?img=47',
     },
+    {
+      email: 'instructor9@wishzy.com',
+      fullName: 'Ngô Thị Ngọc',
+      password: hashedPassword,
+      role: 'instructor',
+      verified: true,
+      loginType: 'google',
+      isInstructorActive: true,
+      phone: '0901234597',
+      gender: 'female',
+      age: 37,
+      dob: new Date('1987-02-28'),
+      address: 'Thanh Xuân, Hà Nội',
+      avatar: 'https://i.pravatar.cc/300?img=47',
+    },
     // Pending instructor (not active yet)
     {
       email: 'instructor.pending@wishzy.com',

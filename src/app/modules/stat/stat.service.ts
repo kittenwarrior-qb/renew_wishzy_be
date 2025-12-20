@@ -199,11 +199,12 @@ export class StatService {
   }
 
   /**
-   * Tổng hợp doanh thu từ các đơn hàng đã thanh toán
+   * Tổng hợp doanh thu từ các đơn hàng đã thanh toán của một giảng viên cụ thể
    * @param query - Query parameters với mode và date range
+   * @param instructorId - ID của giảng viên
    * @returns Thống kê doanh thu theo khoảng thời gian
    */
-  async getRevenue(query: RevenueQueryDto): Promise<RevenueResponseDto> {
+  async getRevenue(query: RevenueQueryDto, instructorId?: string): Promise<RevenueResponseDto> {
     const { mode, startDate, endDate } = query;
 
     // Xác định grouping dựa trên mode
@@ -226,15 +227,20 @@ export class StatService {
         groupBy = "TO_CHAR(order.created_at, 'YYYY-MM')";
     }
 
-    // Build query - chỉ lấy orders, không cần join detail_orders
-    let queryBuilder = this.orderRepository
-      .createQueryBuilder('order')
+    // Build query - join với detail_orders và courses để filter theo instructor
+    let queryBuilder = this.orderDetailRepository
+      .createQueryBuilder('orderDetail')
+      .innerJoin('orderDetail.order', 'order')
+      .innerJoin('orderDetail.course', 'course')
       .select(groupBy, 'period')
-      .addSelect('SUM(order.totalPrice)', 'revenue')
+      .addSelect('SUM(orderDetail.price)', 'revenue')
       .addSelect('COUNT(DISTINCT order.id)', 'orderCount')
-      .where('order.status = :status', { status: OrderStatus.COMPLETED })
-      .groupBy('period')
-      .orderBy('period', 'ASC');
+      .where('order.status = :status', { status: OrderStatus.COMPLETED });
+
+    // Filter theo instructor nếu có
+    if (instructorId) {
+      queryBuilder = queryBuilder.andWhere('course.created_by = :instructorId', { instructorId });
+    }
 
     // Apply date range filters nếu có
     if (startDate) {
@@ -249,6 +255,10 @@ export class StatService {
       });
     }
 
+    queryBuilder = queryBuilder
+      .groupBy('period')
+      .orderBy('period', 'ASC');
+
     const rawData = await queryBuilder.getRawMany();
 
     // Tính tổng doanh thu và số đơn hàng
@@ -259,20 +269,34 @@ export class StatService {
     const monthlyRevenue =
       rawData.length > 0 ? parseFloat(rawData[rawData.length - 1].revenue || '0') : 0;
 
-    // Tính tổng số học viên từ enrollments
-    const totalStudentsData = await this.enrollmentRepository
+    // Tính tổng số học viên từ enrollments của instructor
+    let totalStudentsQuery = this.enrollmentRepository
       .createQueryBuilder('enrollment')
-      .select('COUNT(DISTINCT enrollment.userId)', 'count')
-      .getRawOne();
+      .select('COUNT(DISTINCT enrollment.userId)', 'count');
+    
+    if (instructorId) {
+      totalStudentsQuery = totalStudentsQuery
+        .innerJoin('enrollment.course', 'course')
+        .where('course.created_by = :instructorId', { instructorId });
+    }
+    
+    const totalStudentsData = await totalStudentsQuery.getRawOne();
     const totalStudents = parseInt(totalStudentsData?.count || '0');
 
     // Tính tổng số khóa học đã bán (unique courses trong order_details)
-    const totalCoursesData = await this.orderDetailRepository
+    let totalCoursesQuery = this.orderDetailRepository
       .createQueryBuilder('orderDetail')
       .innerJoin('orderDetail.order', 'order')
       .select('COUNT(DISTINCT orderDetail.courseId)', 'count')
-      .where('order.status = :status', { status: OrderStatus.COMPLETED })
-      .getRawOne();
+      .where('order.status = :status', { status: OrderStatus.COMPLETED });
+    
+    if (instructorId) {
+      totalCoursesQuery = totalCoursesQuery
+        .innerJoin('orderDetail.course', 'course')
+        .andWhere('course.created_by = :instructorId', { instructorId });
+    }
+    
+    const totalCoursesData = await totalCoursesQuery.getRawOne();
     const totalCourses = parseInt(totalCoursesData?.count || '0');
 
     // Tính doanh thu trung bình mỗi khóa học
@@ -295,7 +319,7 @@ export class StatService {
         period,
         revenue: parseFloat(item.revenue || '0'),
         orderCount: parseInt(item.orderCount || '0'),
-        courseSoldCount: 0, // Không cần count vì đã remove join
+        courseSoldCount: 0, // Sẽ được tính riêng nếu cần
       };
 
       // Parse period để tách ra year, month, week, day
