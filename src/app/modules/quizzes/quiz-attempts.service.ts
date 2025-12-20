@@ -11,6 +11,8 @@ import { UserAnswer } from '../../entities/user-answer.entity';
 import { Quiz } from '../../entities/quiz.entity';
 import { Question } from '../../entities/question.entity';
 import { AnswerOption } from '../../entities/answer-option.entity';
+import { Lecture } from '../../entities/lecture.entity';
+import { Course } from '../../entities/course.entity';
 import { SubmitAnswerDto } from './dto/submit-answer.dto';
 import { AttemptStatus } from '../../entities/enums/attempt-status.enum';
 
@@ -27,6 +29,10 @@ export class QuizAttemptsService {
     private readonly questionRepository: Repository<Question>,
     @InjectRepository(AnswerOption)
     private readonly answerOptionRepository: Repository<AnswerOption>,
+    @InjectRepository(Lecture)
+    private readonly lectureRepository: Repository<Lecture>,
+    @InjectRepository(Course)
+    private readonly courseRepository: Repository<Course>,
   ) {}
 
   async startAttempt(quizId: string, userId: string): Promise<QuizAttempt> {
@@ -235,6 +241,223 @@ export class QuizAttemptsService {
         description: quiz.description,
       },
       results,
+    };
+  }
+
+  /**
+   * Get all quiz attempts for admin (paginated)
+   */
+  async getAllAttempts(
+    page: number = 1,
+    limit: number = 10,
+    filters?: {
+      status?: AttemptStatus;
+      quizId?: string;
+      userId?: string;
+    },
+  ) {
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+
+    const query = this.attemptRepository
+      .createQueryBuilder('attempt')
+      .leftJoinAndSelect('attempt.user', 'user')
+      .leftJoinAndSelect('attempt.quiz', 'quiz')
+      .orderBy('attempt.startedAt', 'DESC')
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum);
+
+    if (filters?.status) {
+      query.andWhere('attempt.status = :status', { status: filters.status });
+    }
+    if (filters?.quizId) {
+      query.andWhere('attempt.quizId = :quizId', { quizId: filters.quizId });
+    }
+    if (filters?.userId) {
+      query.andWhere('attempt.userId = :userId', { userId: filters.userId });
+    }
+
+    const [attempts, total] = await query.getManyAndCount();
+
+    return {
+      data: attempts.map((a) => ({
+        id: a.id,
+        quizId: a.quizId,
+        userId: a.userId,
+        startedAt: a.startedAt,
+        completedAt: a.completedAt,
+        totalScore: a.totalScore,
+        maxScore: a.maxScore,
+        percentage: a.percentage,
+        status: a.status,
+        user: a.user ? { id: a.user.id, fullName: a.user.fullName, email: a.user.email } : null,
+        quiz: a.quiz ? { id: a.quiz.id, title: a.quiz.title } : null,
+      })),
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    };
+  }
+
+  /**
+   * Get quiz attempts for instructor (only quizzes attached to their courses)
+   */
+  async getInstructorAttempts(
+    instructorId: string,
+    page: number = 1,
+    limit: number = 10,
+    filters?: {
+      status?: AttemptStatus;
+      quizId?: string;
+    },
+  ) {
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 10;
+
+    // Get all quizzes that belong to instructor:
+    // 1. Quizzes created by instructor (standalone quizzes)
+    // 2. Quizzes attached to lectures in courses created by instructor
+    const query = this.attemptRepository
+      .createQueryBuilder('attempt')
+      .leftJoinAndSelect('attempt.user', 'user')
+      .leftJoinAndSelect('attempt.quiz', 'quiz')
+      .leftJoin('quiz.lecture', 'lecture')
+      .leftJoin('lecture.chapter', 'chapter')
+      .leftJoin('chapter.course', 'course')
+      .where(
+        '(quiz.creatorId = :instructorId OR (course.createdBy = :instructorId AND quiz.entityId IS NOT NULL))',
+        { instructorId },
+      )
+      .orderBy('attempt.startedAt', 'DESC')
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum);
+
+    if (filters?.status) {
+      query.andWhere('attempt.status = :status', { status: filters.status });
+    }
+    if (filters?.quizId) {
+      query.andWhere('attempt.quizId = :quizId', { quizId: filters.quizId });
+    }
+
+    const [attempts, total] = await query.getManyAndCount();
+
+    return {
+      data: attempts.map((a) => ({
+        id: a.id,
+        quizId: a.quizId,
+        userId: a.userId,
+        startedAt: a.startedAt,
+        completedAt: a.completedAt,
+        totalScore: a.totalScore,
+        maxScore: a.maxScore,
+        percentage: a.percentage,
+        status: a.status,
+        user: a.user ? { id: a.user.id, fullName: a.user.fullName, email: a.user.email } : null,
+        quiz: a.quiz ? { id: a.quiz.id, title: a.quiz.title } : null,
+      })),
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    };
+  }
+
+  /**
+   * Get attempt details for admin/instructor
+   */
+  async getAttemptDetailsForAdmin(
+    attemptId: string,
+    userId: string,
+    userRole: string,
+  ) {
+    const attempt = await this.attemptRepository.findOne({
+      where: { id: attemptId },
+      relations: ['quiz', 'user', 'userAnswers', 'userAnswers.question', 'userAnswers.selectedOption'],
+    });
+
+    if (!attempt) {
+      throw new NotFoundException(`Attempt with ID ${attemptId} not found`);
+    }
+
+    // Check access permission
+    if (userRole !== 'admin') {
+      // Instructor: check if quiz belongs to them
+      const quiz = await this.quizRepository.findOne({
+        where: { id: attempt.quizId },
+        relations: ['lecture', 'lecture.chapter', 'lecture.chapter.course'],
+      });
+
+      if (!quiz) {
+        throw new NotFoundException('Quiz not found');
+      }
+
+      const isCreator = quiz.creatorId === userId;
+      const isCourseOwner =
+        quiz.lecture?.chapter?.course?.createdBy === userId;
+
+      if (!isCreator && !isCourseOwner) {
+        throw new ForbiddenException('You do not have permission to view this attempt');
+      }
+    }
+
+    // Get full quiz with questions and correct answers
+    const quiz = await this.quizRepository.findOne({
+      where: { id: attempt.quizId },
+      relations: ['questions', 'questions.answerOptions'],
+    });
+
+    const questionsWithAnswers = quiz.questions.map((question) => {
+      const userAnswer = attempt.userAnswers.find((ua) => ua.questionId === question.id);
+      const correctOption = question.answerOptions.find((opt) => opt.isCorrect);
+
+      return {
+        id: question.id,
+        questionText: question.questionText,
+        points: question.points,
+        orderIndex: question.orderIndex,
+        userAnswer: userAnswer
+          ? {
+              selectedOptionId: userAnswer.selectedOptionId,
+              selectedOptionText: userAnswer.selectedOption?.optionText,
+              isCorrect: userAnswer.isCorrect,
+              pointsEarned: userAnswer.pointsEarned,
+            }
+          : null,
+        correctAnswer: correctOption
+          ? {
+              id: correctOption.id,
+              optionText: correctOption.optionText,
+            }
+          : null,
+        answerOptions: question.answerOptions.map((opt) => ({
+          id: opt.id,
+          optionText: opt.optionText,
+          isCorrect: opt.isCorrect,
+          orderIndex: opt.orderIndex,
+        })),
+      };
+    });
+
+    return {
+      id: attempt.id,
+      startedAt: attempt.startedAt,
+      completedAt: attempt.completedAt,
+      totalScore: attempt.totalScore,
+      maxScore: attempt.maxScore,
+      percentage: attempt.percentage,
+      status: attempt.status,
+      user: {
+        id: attempt.user.id,
+        fullName: attempt.user.fullName,
+        email: attempt.user.email,
+      },
+      quiz: {
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description,
+      },
+      questions: questionsWithAnswers,
     };
   }
 }

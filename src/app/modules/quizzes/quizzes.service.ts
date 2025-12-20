@@ -51,8 +51,11 @@ export class QuizzesService {
     // Create questions with answer options
     for (let i = 0; i < questions.length; i++) {
       const questionData = questions[i];
+      // Destructure to exclude answerOptions - we'll create them manually to avoid double creation
+      // (TypeORM cascade would create them again when saving question with answerOptions)
+      const { answerOptions, ...questionFields } = questionData;
       const question = this.questionRepository.create({
-        ...questionData,
+        ...questionFields,
         quizId: savedQuiz.id,
         orderIndex: i,
       });
@@ -60,8 +63,8 @@ export class QuizzesService {
       const savedQuestion = await this.questionRepository.save(question);
 
       // Create answer options
-      for (let j = 0; j < questionData.answerOptions.length; j++) {
-        const optionData = questionData.answerOptions[j];
+      for (let j = 0; j < answerOptions.length; j++) {
+        const optionData = answerOptions[j];
         await this.answerOptionRepository
           .createQueryBuilder()
           .insert()
