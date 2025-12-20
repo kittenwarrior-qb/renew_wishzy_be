@@ -23,7 +23,7 @@ export class CommentsService {
 
     @InjectRepository(Course)
     private readonly courseRepository: Repository<Course>,
-  ) {}
+  ) { }
 
   async create(createCommentDto: CreateCommentDto, userId: string): Promise<Comment> {
     const comment = this.commentRepository.create({
@@ -103,7 +103,7 @@ export class CommentsService {
   }
 
   async findOne(commentId: string): Promise<Comment> {
-    const comment = await this.commentRepository.findOne({ 
+    const comment = await this.commentRepository.findOne({
       where: { id: commentId },
       relations: ['user'],
     });

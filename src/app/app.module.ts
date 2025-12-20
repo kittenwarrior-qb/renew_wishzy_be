@@ -29,6 +29,9 @@ import { StatModule } from './modules/stat/stat.module';
 import { LectureNotesModule } from './modules/lecture-notes/lecture-notes.module';
 import { InstructorModule } from './modules/instructor/instructor.module';
 import { SystemSettingsModule } from './modules/system-settings/system-settings.module';
+import { BlogModule } from './modules/blog/blog.module';
+import { CommentBlogModule } from './modules/comment-blog/comment-blog.module';
+import { CategoryBlogModule } from './modules/category-blog/category-blog.module';
 
 @Module({
   imports: [
@@ -99,6 +102,9 @@ import { SystemSettingsModule } from './modules/system-settings/system-settings.
     StatModule,
     LectureNotesModule,
     InstructorModule,
+    BlogModule,
+    CommentBlogModule,
+    CategoryBlogModule,
   ],
   providers: [
     // Global Guards
@@ -116,7 +122,7 @@ import { SystemSettingsModule } from './modules/system-settings/system-settings.
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
 
 /**
  * Conditionally import modules based on configuration
