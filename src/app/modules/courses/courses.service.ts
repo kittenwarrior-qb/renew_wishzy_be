@@ -324,9 +324,13 @@ export class CoursesService {
     userId: string,
     chaptersPerCourse: number = 5,
     lecturesPerChapter: number = 5,
-  ): Promise<{ created: number; chapters: number; lectures: number }> {
-    const { CourseTestDataGenerator, ChapterTestDataGenerator, LectureTestDataGenerator } =
-      await import('./courses.create-test');
+  ): Promise<{ created: number; chapters: number; lectures: number; quizzes: number; stats: any }> {
+    const {
+      CourseTestDataGenerator,
+      ChapterTestDataGenerator,
+      LectureTestDataGenerator,
+      QuizTestDataGenerator,
+    } = await import('./courses.create-test');
 
     const categoryIds = await this.courseRepository.manager.query(
       'SELECT id FROM categories LIMIT 10',
@@ -338,57 +342,132 @@ export class CoursesService {
 
     const categoryIdList = categoryIds.map((cat: any) => cat.id);
 
-    const fakeCourses = CourseTestDataGenerator.generateVietnameseCourses(
-      quantity,
-      categoryIdList,
-      userId,
-    );
-
-    const courses = fakeCourses.map((course) => ({
-      ...course,
-      rating: 0,
-      status: true,
-      averageRating: 0,
-      numberOfStudents: 0,
-    }));
-
-    const insertedCourses = await this.courseRepository.save(courses);
-
     let totalChapters = 0;
     let totalLectures = 0;
+    let totalQuizzes = 0;
+    const courseStats: any[] = [];
 
-    for (const course of insertedCourses) {
+    for (let i = 0; i < quantity; i++) {
+      // Generate course data
+      const courseDto = CourseTestDataGenerator.generateVietnameseCourse(categoryIdList, userId);
+
+      // Extract tech from course name for quiz generation
+      const techMatch = courseDto.name.match(/với\s+(\w+(?:\.\w+)?)/);
+      const tech = techMatch ? techMatch[1] : 'React';
+
+      // 1. Save course
+      const course = await this.courseRepository.save({
+        ...courseDto,
+        rating: 0,
+        status: true,
+        averageRating: 0,
+        numberOfStudents: 0,
+      });
+
+      // 2. Save chapters using chaptersPerCourse parameter
+      const savedChapters: any[] = [];
       const chapters = ChapterTestDataGenerator.generateChapters(
         course.id,
         userId,
         chaptersPerCourse,
       );
+      for (const chapterData of chapters) {
+        const chapter = await this.courseRepository.manager.getRepository('Chapter').save({
+          ...chapterData,
+          courseId: course.id,
+        });
+        savedChapters.push(chapter);
+      }
+      totalChapters += savedChapters.length;
 
-      const insertedChapters = await this.courseRepository.manager
-        .getRepository('Chapter')
-        .save(chapters);
+      // 3. Save lectures using lecturesPerChapter parameter and track which need quizzes
+      const lecturesNeedingQuiz: Array<{
+        id: string;
+        name: string;
+        tech: string;
+        questionCount: number;
+      }> = [];
 
-      totalChapters += insertedChapters.length;
+      for (let chapterIndex = 0; chapterIndex < savedChapters.length; chapterIndex++) {
+        const chapter = savedChapters[chapterIndex];
 
-      for (const chapter of insertedChapters) {
+        // Use legacy method with lecturesPerChapter parameter
         const lectures = LectureTestDataGenerator.generateLectures(
           chapter.id,
           userId,
           lecturesPerChapter,
+          'alternate', // Every 3rd lecture has quiz
         );
 
-        const insertedLectures = await this.courseRepository.manager
-          .getRepository('Lecture')
-          .save(lectures);
+        for (const lectureData of lectures) {
+          const lecture = await this.courseRepository.manager.getRepository('Lecture').save({
+            ...lectureData,
+            chapterId: chapter.id,
+          });
 
-        totalLectures += insertedLectures.length;
+          if (lectureData.requiresQuiz) {
+            // Final chapter quiz has 5 questions, others have 3
+            const isFinalChapter = chapterIndex === savedChapters.length - 1;
+            lecturesNeedingQuiz.push({
+              id: lecture.id,
+              name: lecture.name,
+              tech,
+              questionCount: isFinalChapter ? 5 : 3,
+            });
+          }
+
+          totalLectures++;
+        }
       }
+
+      // 4. Save quizzes
+      for (const lectureInfo of lecturesNeedingQuiz) {
+        const quizData = QuizTestDataGenerator.generateQuizForLecture(
+          lectureInfo.id,
+          userId,
+          lectureInfo.name,
+          lectureInfo.tech,
+          lectureInfo.questionCount,
+        );
+
+        const { questions, ...quizFields } = quizData;
+
+        const quiz = await this.courseRepository.manager.getRepository('Quiz').save(quizFields);
+
+        for (const questionData of questions) {
+          const { answerOptions, ...questionFields } = questionData;
+
+          const question = await this.courseRepository.manager.getRepository('Question').save({
+            ...questionFields,
+            quizId: quiz.id,
+          });
+
+          for (const optionData of answerOptions) {
+            await this.courseRepository.manager.getRepository('AnswerOption').save({
+              ...optionData,
+              questionId: question.id,
+            });
+          }
+        }
+
+        totalQuizzes++;
+      }
+
+      // Collect stats for this course
+      courseStats.push({
+        name: course.name,
+        chapters: savedChapters.length,
+        lectures: savedChapters.length * lecturesPerChapter,
+        quizzes: lecturesNeedingQuiz.length,
+      });
     }
 
     return {
       created: quantity,
       chapters: totalChapters,
       lectures: totalLectures,
+      quizzes: totalQuizzes,
+      stats: courseStats,
     };
   }
 }

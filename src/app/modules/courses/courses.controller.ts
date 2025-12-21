@@ -227,7 +227,7 @@ export class CoursesController {
       body.lecturesPerChapter,
     );
     return {
-      message: `Successfully created ${result.created} test courses with ${result.chapters} chapters and ${result.lectures} lectures`,
+      message: `Successfully created ${result.created} test courses with ${result.chapters} chapters, ${result.lectures} lectures, and ${result.quizzes} quizzes`,
       data: result,
     };
   }

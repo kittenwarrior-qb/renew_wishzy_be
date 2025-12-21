@@ -44,6 +44,9 @@ export class Lecture {
   @Column({ type: 'uuid', name: 'created_by' })
   createdBy!: string;
 
+  @Column({ type: 'boolean', name: 'requires_quiz', default: false })
+  requiresQuiz: boolean;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt!: Date;
 

@@ -107,4 +107,36 @@ export class QuizAttemptsController {
   getAttemptResults(@Param('id') attemptId: string, @Request() req) {
     return this.quizAttemptsService.getAttemptResults(attemptId, req.user.id);
   }
+
+  @Get('lecture/:lectureId/status')
+  @ApiOperation({ summary: 'Get quiz status for a lecture' })
+  @ApiResponse({ status: 200, description: 'Quiz status retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Lecture not found' })
+  getLectureQuizStatus(@Param('lectureId') lectureId: string, @Request() req) {
+    return this.quizAttemptsService.getLectureQuizStatus(lectureId, req.user.id);
+  }
+
+  @Get('lecture/:lectureId/check-completion')
+  @ApiOperation({ summary: 'Check if user has completed all quizzes for a lecture' })
+  @ApiResponse({ status: 200, description: 'Completion status retrieved' })
+  @ApiResponse({ status: 404, description: 'Lecture not found' })
+  checkLectureQuizCompletion(@Param('lectureId') lectureId: string, @Request() req) {
+    return this.quizAttemptsService.checkLectureQuizCompletion(lectureId, req.user.id);
+  }
+
+  @Post(':id/complete-and-check')
+  @ApiOperation({ summary: 'Complete quiz attempt and check lecture completion' })
+  @ApiResponse({ status: 200, description: 'Attempt completed and lecture status checked' })
+  @ApiResponse({ status: 400, description: 'Attempt already completed' })
+  completeAttemptAndCheckLecture(
+    @Param('id') attemptId: string,
+    @Body() body: { enrollmentId?: string },
+    @Request() req,
+  ) {
+    return this.quizAttemptsService.completeAttemptAndCheckLecture(
+      attemptId,
+      req.user.id,
+      body.enrollmentId,
+    );
+  }
 }
