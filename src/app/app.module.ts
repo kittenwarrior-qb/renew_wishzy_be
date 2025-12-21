@@ -32,6 +32,7 @@ import { SystemSettingsModule } from './modules/system-settings/system-settings.
 import { BlogModule } from './modules/blog/blog.module';
 import { CommentBlogModule } from './modules/comment-blog/comment-blog.module';
 import { CategoryBlogModule } from './modules/category-blog/category-blog.module';
+import { FaqsModule } from './modules/faqs/faqs.module';
 
 @Module({
   imports: [
@@ -105,6 +106,7 @@ import { CategoryBlogModule } from './modules/category-blog/category-blog.module
     BlogModule,
     CommentBlogModule,
     CategoryBlogModule,
+    FaqsModule,
   ],
   providers: [
     // Global Guards

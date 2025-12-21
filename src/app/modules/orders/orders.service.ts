@@ -21,6 +21,7 @@ export class OrdersService {
     @InjectRepository(OrderDetail)
     private readonly orderDetailRepository: Repository<OrderDetail>,
   ) {}
+
   async create(createOrderDto: CreateOrderDto, userId: string): Promise<OrderWithDetails> {
     const order = this.orderRepository.create(createOrderDto);
     order.userId = userId;

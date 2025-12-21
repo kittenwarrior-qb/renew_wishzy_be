@@ -49,10 +49,10 @@ export class StatController {
   }
 
   @Get('revenue')
-  @Roles(UserRole.INSTRUCTOR)
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
   @ApiOperation({ 
-    summary: 'Tổng hợp doanh thu của giảng viên',
-    description: 'Thống kê doanh thu từ các khóa học của giảng viên hiện tại, hỗ trợ group theo ngày, tuần, tháng, năm'
+    summary: 'Tổng hợp doanh thu',
+    description: 'Admin: doanh thu hệ thống (% hoa hồng từ tất cả orders). Instructor: doanh thu từ các khóa học của mình.'
   })
   @ApiResponse({ 
     status: 200, 
@@ -65,10 +65,13 @@ export class StatController {
   })
   @ApiResponse({ 
     status: 403, 
-    description: 'Forbidden - Chỉ dành cho giảng viên'
+    description: 'Forbidden - Chỉ dành cho Admin hoặc Giảng viên'
   })
   async getRevenue(@Query() query: RevenueQueryDto, @CurrentUser() user: User): Promise<RevenueResponseDto> {
-    return this.statService.getRevenue(query, user.id);
+    // Admin: xem doanh thu toàn hệ thống (không filter theo instructorId)
+    // Instructor: chỉ xem doanh thu của mình
+    const instructorId = user.role === UserRole.ADMIN ? undefined : user.id;
+    return this.statService.getRevenue(query, instructorId, user.role === UserRole.ADMIN);
   }
 
   @Get('instructor')

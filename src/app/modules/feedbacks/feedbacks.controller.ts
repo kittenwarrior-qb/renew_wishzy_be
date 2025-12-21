@@ -188,7 +188,7 @@ export class FeedbacksController {
   @Patch(':feedbackId/like')
   @ApiOperation({
     summary: 'Like a feedback',
-    description: 'Increment the like count for a specific feedback.',
+    description: 'Toggle like for a feedback. If already liked, removes like. If disliked, switches to like.',
   })
   @ApiParam({
     name: 'feedbackId',
@@ -197,26 +197,29 @@ export class FeedbacksController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Feedback liked successfully',
+    description: 'Feedback reaction updated',
     schema: {
       example: {
         message: 'Feedback liked successfully',
+        action: 'added',
+        userReaction: 'like',
       },
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
   @ApiResponse({ status: 404, description: 'Feedback not found' })
-  async like(@Param('feedbackId') feedbackId: string) {
-    await this.feedbacksService.like(feedbackId);
+  async like(@Param('feedbackId') feedbackId: string, @CurrentUser() user: User) {
+    const result = await this.feedbacksService.like(feedbackId, user.id);
     return {
-      message: 'Feedback liked successfully',
+      message: result.action === 'removed' ? 'Like removed' : 'Feedback liked successfully',
+      ...result,
     };
   }
 
   @Patch(':feedbackId/dislike')
   @ApiOperation({
     summary: 'Dislike a feedback',
-    description: 'Increment the dislike count for a specific feedback.',
+    description: 'Toggle dislike for a feedback. If already disliked, removes dislike. If liked, switches to dislike.',
   })
   @ApiParam({
     name: 'feedbackId',
@@ -225,19 +228,22 @@ export class FeedbacksController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Feedback disliked successfully',
+    description: 'Feedback reaction updated',
     schema: {
       example: {
         message: 'Feedback disliked successfully',
+        action: 'added',
+        userReaction: 'dislike',
       },
     },
   })
   @ApiResponse({ status: 401, description: 'Unauthorized - Authentication required' })
   @ApiResponse({ status: 404, description: 'Feedback not found' })
-  async dislike(@Param('feedbackId') feedbackId: string) {
-    await this.feedbacksService.dislike(feedbackId);
+  async dislike(@Param('feedbackId') feedbackId: string, @CurrentUser() user: User) {
+    const result = await this.feedbacksService.dislike(feedbackId, user.id);
     return {
-      message: 'Feedback disliked successfully',
+      message: result.action === 'removed' ? 'Dislike removed' : 'Feedback disliked successfully',
+      ...result,
     };
   }
 
@@ -356,7 +362,7 @@ export class FeedbacksController {
   @Public()
   @ApiOperation({
     summary: 'Get all feedbacks for a course',
-    description: 'Retrieve a paginated list of all feedbacks for a specific course.',
+    description: 'Retrieve a paginated list of all feedbacks for a specific course. If user is authenticated, includes their reaction status.',
   })
   @ApiParam({
     name: 'courseId',
@@ -392,6 +398,7 @@ export class FeedbacksController {
             dislike: 0,
             userId: 'uuid',
             courseId: 'uuid',
+            userReaction: 'like',
             createdAt: '2025-11-14T10:00:00.000Z',
             updatedAt: '2025-11-14T10:00:00.000Z',
             user: {
@@ -415,8 +422,9 @@ export class FeedbacksController {
     @Param('courseId') courseId: string,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @CurrentUser() user?: User,
   ) {
-    const result = await this.feedbacksService.findByCourse(courseId, Number(page), Number(limit));
+    const result = await this.feedbacksService.findByCourse(courseId, Number(page), Number(limit), user?.id);
     return {
       message: 'Course feedbacks retrieved successfully',
       ...result,

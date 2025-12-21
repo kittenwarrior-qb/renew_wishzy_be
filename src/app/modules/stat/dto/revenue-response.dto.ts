@@ -41,10 +41,16 @@ export class RevenueResponseDto {
   mode!: RevenueMode;
 
   @ApiProperty({ 
-    description: 'Tổng doanh thu toàn bộ',
+    description: 'Tổng doanh thu thực nhận (Admin: systemRevenue, Instructor: instructorRevenue)',
     example: 150000000
   })
   totalRevenue!: number;
+
+  @ApiProperty({ 
+    description: 'Tổng doanh thu trước khi chia (gross)',
+    example: 200000000
+  })
+  grossRevenue?: number;
 
   @ApiProperty({ 
     description: 'Doanh thu tháng gần nhất',

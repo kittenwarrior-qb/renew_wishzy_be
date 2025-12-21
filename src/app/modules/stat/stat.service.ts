@@ -199,12 +199,15 @@ export class StatService {
   }
 
   /**
-   * Tổng hợp doanh thu từ các đơn hàng đã thanh toán của một giảng viên cụ thể
+   * Tổng hợp doanh thu từ các đơn hàng đã thanh toán
+   * - Admin: xem doanh thu hệ thống (% hoa hồng từ tất cả orders)
+   * - Instructor: xem doanh thu từ các khóa học của mình
    * @param query - Query parameters với mode và date range
-   * @param instructorId - ID của giảng viên
+   * @param instructorId - ID của giảng viên (null cho admin)
+   * @param isAdmin - True nếu là admin
    * @returns Thống kê doanh thu theo khoảng thời gian
    */
-  async getRevenue(query: RevenueQueryDto, instructorId?: string): Promise<RevenueResponseDto> {
+  async getRevenue(query: RevenueQueryDto, instructorId?: string, isAdmin: boolean = false): Promise<RevenueResponseDto> {
     const { mode, startDate, endDate } = query;
 
     // Xác định grouping dựa trên mode
@@ -237,7 +240,7 @@ export class StatService {
       .addSelect('COUNT(DISTINCT order.id)', 'orderCount')
       .where('order.status = :status', { status: OrderStatus.COMPLETED });
 
-    // Filter theo instructor nếu có
+    // Filter theo instructor nếu có (không filter cho admin)
     if (instructorId) {
       queryBuilder = queryBuilder.andWhere('course.created_by = :instructorId', { instructorId });
     }
@@ -376,7 +379,8 @@ export class StatService {
 
     return {
       mode,
-      totalRevenue,
+      totalRevenue: isAdmin ? systemRevenue : instructorRevenue,
+      grossRevenue: totalRevenue,
       monthlyRevenue,
       totalOrders,
       totalStudents,
