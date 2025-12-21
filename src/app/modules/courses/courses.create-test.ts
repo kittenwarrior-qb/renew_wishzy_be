@@ -47,16 +47,43 @@ const COURSE_THUMBNAILS: Record<string, string[]> = {
 // Sample videos với duration thực tế (seconds)
 const SAMPLE_VIDEOS: Array<{ url: string; duration: number }> = [
   // Short videos (15s - 30s) - cho intro/outro
-  { url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', duration: 15 },
-  { url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', duration: 15 },
-  { url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', duration: 60 },
-  { url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4', duration: 15 },
-  { url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4', duration: 15 },
+  {
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    duration: 15,
+  },
+  {
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
+    duration: 15,
+  },
+  {
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    duration: 60,
+  },
+  {
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+    duration: 15,
+  },
+  {
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4',
+    duration: 15,
+  },
   // Medium/Long videos - cho content chính
-  { url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', duration: 596 }, // ~10 min
-  { url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', duration: 653 }, // ~11 min
-  { url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4', duration: 888 }, // ~15 min
-  { url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4', duration: 734 }, // ~12 min
+  {
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    duration: 596,
+  }, // ~10 min
+  {
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+    duration: 653,
+  }, // ~11 min
+  {
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4',
+    duration: 888,
+  }, // ~15 min
+  {
+    url: 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    duration: 734,
+  }, // ~12 min
 ];
 
 // Cấu trúc khóa học chuẩn Udemy
@@ -281,6 +308,62 @@ const TECH_CONCEPTS: Record<string, string[]> = {
   Docker: ['Containers', 'Images', 'Dockerfile', 'Docker Compose', 'Volumes', 'Networks'],
   Kubernetes: ['Pods', 'Services', 'Deployments', 'ConfigMaps', 'Secrets', 'Ingress'],
   default: ['Variables', 'Functions', 'Classes', 'Objects', 'Arrays', 'Loops'],
+};
+
+// ============================================
+// SAMPLE DOCUMENTS DATA
+// ============================================
+
+// Sample PDF documents (public URLs)
+const SAMPLE_DOCUMENTS = {
+  pdf: [
+    'https://www.w3.org/WAI/WCAG21/Techniques/pdf/img/table-word.jpg', // placeholder
+    'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
+  ],
+  // Course-level documents
+  courseDocuments: [
+    {
+      name: 'Giáo trình khóa học.pdf',
+      descriptions: 'Tài liệu tổng hợp toàn bộ nội dung khóa học',
+      fileUrl: 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
+    },
+    {
+      name: 'Hướng dẫn cài đặt môi trường.pdf',
+      descriptions: 'Hướng dẫn chi tiết cách cài đặt các công cụ cần thiết',
+      fileUrl: 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
+    },
+    {
+      name: 'Tài liệu tham khảo.pdf',
+      descriptions: 'Danh sách các nguồn tài liệu tham khảo bổ sung',
+      fileUrl: 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
+    },
+  ],
+  // Chapter-level documents
+  chapterDocuments: [
+    {
+      nameTemplate: 'Slide bài giảng - {chapter}.pdf',
+      descriptions: 'Slide tóm tắt nội dung chương',
+    },
+    {
+      nameTemplate: 'Bài tập thực hành - {chapter}.pdf',
+      descriptions: 'Các bài tập thực hành cho chương này',
+    },
+  ],
+  // Lecture-level documents
+  lectureDocuments: [
+    {
+      nameTemplate: 'Code mẫu - {lecture}.zip',
+      descriptions: 'Source code mẫu cho bài học',
+    },
+    {
+      nameTemplate: 'Ghi chú bài học - {lecture}.pdf',
+      descriptions: 'Ghi chú và tóm tắt nội dung bài học',
+    },
+    {
+      nameTemplate: 'Tài liệu bổ sung - {lecture}.pdf',
+      descriptions: 'Tài liệu đọc thêm cho bài học',
+    },
+  ],
 };
 
 // ============================================
@@ -647,6 +730,105 @@ export class QuizTestDataGenerator {
 }
 
 // ============================================
+// DOCUMENT GENERATOR
+// ============================================
+
+export type DocumentEntityType = 'course' | 'chapter' | 'lecture';
+
+export interface GeneratedDocument {
+  name: string;
+  descriptions: string;
+  notes?: string;
+  fileUrl: string;
+  entityId: string;
+  entityType: DocumentEntityType;
+  createdBy: string;
+}
+
+export class DocumentTestDataGenerator {
+  /**
+   * Generate documents for a course (course-level documents)
+   */
+  static generateCourseDocuments(
+    courseId: string,
+    createdBy: string,
+    courseName: string,
+  ): GeneratedDocument[] {
+    // Always create all 3 course documents
+    return SAMPLE_DOCUMENTS.courseDocuments.map((doc) => ({
+      name: doc.name,
+      descriptions: `${doc.descriptions} - ${courseName}`,
+      notes: `Tài liệu cho khóa học: ${courseName}`,
+      fileUrl: doc.fileUrl,
+      entityId: courseId,
+      entityType: 'course' as DocumentEntityType,
+      createdBy,
+    }));
+  }
+
+  /**
+   * Generate documents for a chapter
+   */
+  static generateChapterDocuments(
+    chapterId: string,
+    createdBy: string,
+    chapterName: string,
+  ): GeneratedDocument[] {
+    // 50% chance to have documents for each chapter
+    if (faker.datatype.boolean({ probability: 0.5 })) {
+      // Random 1-2 documents per chapter
+      const count = faker.number.int({ min: 1, max: 2 });
+      const templates = faker.helpers.arrayElements(SAMPLE_DOCUMENTS.chapterDocuments, count);
+
+      return templates.map((template) => ({
+        name: template.nameTemplate.replace(
+          '{chapter}',
+          chapterName.replace(/^Chương \d+:\s*/, ''),
+        ),
+        descriptions: template.descriptions,
+        fileUrl: 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
+        entityId: chapterId,
+        entityType: 'chapter' as DocumentEntityType,
+        createdBy,
+      }));
+    }
+    return [];
+  }
+
+  /**
+   * Generate documents for a lecture
+   */
+  static generateLectureDocuments(
+    lectureId: string,
+    createdBy: string,
+    lectureName: string,
+    lectureType: LectureType,
+  ): GeneratedDocument[] {
+    // Quiz lectures don't have documents
+    if (lectureType === 'quiz') {
+      return [];
+    }
+
+    // 40% chance to have documents for each lecture
+    if (faker.datatype.boolean({ probability: 0.4 })) {
+      // Random 1-2 documents per lecture
+      const count = faker.number.int({ min: 1, max: 2 });
+      const templates = faker.helpers.arrayElements(SAMPLE_DOCUMENTS.lectureDocuments, count);
+
+      return templates.map((template) => ({
+        name: template.nameTemplate.replace('{lecture}', lectureName.replace(/^Bài \d+:\s*/, '')),
+        descriptions: template.descriptions,
+        fileUrl: 'https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf',
+        entityId: lectureId,
+        entityType: 'lecture' as DocumentEntityType,
+        createdBy,
+      }));
+    }
+    return [];
+  }
+}
+
+// ============================================
 // FULL COURSE GENERATOR (Udemy-style)
 // ============================================
 
@@ -655,11 +837,16 @@ export interface GeneratedCourseData {
   chapters: ReturnType<typeof ChapterTestDataGenerator.generateChaptersForCourse>;
   lectures: ReturnType<typeof LectureTestDataGenerator.generateLecturesForChapter>[];
   quizzes: ReturnType<typeof QuizTestDataGenerator.generateQuizForLecture>[];
+  documents: {
+    course: GeneratedDocument[];
+    chapters: GeneratedDocument[][];
+    lectures: GeneratedDocument[][];
+  };
 }
 
 export class FullCourseGenerator {
   /**
-   * Generate a complete Udemy-style course with chapters, lectures, and quizzes
+   * Generate a complete Udemy-style course with chapters, lectures, quizzes, and documents
    */
   static generateFullCourse(categoryIds: string[], createdBy: string): GeneratedCourseData {
     // 1. Generate course
@@ -707,7 +894,44 @@ export class FullCourseGenerator {
       });
     });
 
-    return { course, chapters, lectures: allLectures, quizzes };
+    // 5. Generate documents
+    // Course documents (will be set after course is saved)
+    const courseDocuments = DocumentTestDataGenerator.generateCourseDocuments(
+      '',
+      createdBy,
+      course.name,
+    );
+
+    // Chapter documents (will be set after chapters are saved)
+    const chapterDocuments: GeneratedDocument[][] = chapters.map((chapter) =>
+      DocumentTestDataGenerator.generateChapterDocuments('', createdBy, chapter.name),
+    );
+
+    // Lecture documents (will be set after lectures are saved)
+    const lectureDocuments: GeneratedDocument[][] = [];
+    allLectures.forEach((chapterLectures) => {
+      chapterLectures.forEach((lecture) => {
+        const docs = DocumentTestDataGenerator.generateLectureDocuments(
+          '',
+          createdBy,
+          lecture.name,
+          lecture._type,
+        );
+        lectureDocuments.push(docs);
+      });
+    });
+
+    return {
+      course,
+      chapters,
+      lectures: allLectures,
+      quizzes,
+      documents: {
+        course: courseDocuments,
+        chapters: chapterDocuments,
+        lectures: lectureDocuments,
+      },
+    };
   }
 
   /**
@@ -718,6 +942,7 @@ export class FullCourseGenerator {
     totalLectures: number;
     totalQuizzes: number;
     totalQuestions: number;
+    totalDocuments: number;
     lecturesWithQuiz: number;
     lecturesWithoutQuiz: number;
     estimatedDuration: string;
@@ -733,6 +958,12 @@ export class FullCourseGenerator {
       0,
     );
 
+    // Count documents
+    const totalDocuments =
+      data.documents.course.length +
+      data.documents.chapters.reduce((sum, docs) => sum + docs.length, 0) +
+      data.documents.lectures.reduce((sum, docs) => sum + docs.length, 0);
+
     const hours = Math.floor(totalDuration / 3600);
     const minutes = Math.floor((totalDuration % 3600) / 60);
 
@@ -741,6 +972,7 @@ export class FullCourseGenerator {
       totalLectures,
       totalQuizzes: data.quizzes.length,
       totalQuestions,
+      totalDocuments,
       lecturesWithQuiz,
       lecturesWithoutQuiz: totalLectures - lecturesWithQuiz,
       estimatedDuration: `${hours}h ${minutes}m`,
