@@ -44,6 +44,7 @@
     "db:fresh": "npm run migration:revert && npm run migration:run && npm run seed",
     "recalculate": "ts-node src/scripts/recalculate-durations.ts",
     "clear:courses": "ts-node src/scripts/clear-courses-data.ts",
+    "create:courses": "ts-node src/scripts/create-test-courses.ts",
     "sync:migrations": "ts-node src/scripts/sync-migrations.ts",
     "create:test-users": "ts-node src/scripts/create-test-users.ts",
     "seed:instructor": "ts-node src/scripts/run-instructor-seeds.ts",

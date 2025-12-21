@@ -90,6 +90,7 @@ export class ChaptersService {
       .addSelect('lecture.is_preview', 'lecture_is_preview')
       .addSelect('lecture.order_index', 'lecture_order_index')
       .addSelect('lecture.file_url', 'lecture_file_url')
+      .addSelect('lecture.requires_quiz', 'lecture_requires_quiz')
       .where('chapter.course_id = :courseId', { courseId })
       .getRawAndEntities();
 
@@ -103,6 +104,7 @@ export class ChaptersService {
             duration: raw.lecture_duration,
             isPreview: raw.lecture_is_preview,
             orderIndex: raw.lecture_order_index,
+            requiresQuiz: raw.lecture_requires_quiz,
             // Only return fileUrl for preview lectures (security)
             fileUrl: raw.lecture_is_preview ? raw.lecture_file_url : undefined,
           }))
@@ -193,6 +195,7 @@ export class ChaptersService {
       .addSelect('lecture.is_preview', 'lecture_is_preview')
       .addSelect('lecture.order_index', 'lecture_order_index')
       .addSelect('lecture.file_url', 'lecture_file_url')
+      .addSelect('lecture.requires_quiz', 'lecture_requires_quiz')
       .where('chapter.course_id = :courseId', { courseId })
       .getRawAndEntities();
 
@@ -206,6 +209,7 @@ export class ChaptersService {
             duration: raw.lecture_duration,
             isPreview: raw.lecture_is_preview,
             orderIndex: raw.lecture_order_index,
+            requiresQuiz: raw.lecture_requires_quiz,
             // Return fileUrl for enrolled users (they have access to all videos)
             fileUrl: raw.lecture_file_url,
           }))

@@ -13,6 +13,7 @@ import { Question } from '../../entities/question.entity';
 import { AnswerOption } from '../../entities/answer-option.entity';
 import { Lecture } from '../../entities/lecture.entity';
 import { Course } from '../../entities/course.entity';
+import { Enrollment } from '../../entities/enrollment.entity';
 import { SubmitAnswerDto } from './dto/submit-answer.dto';
 import { AttemptStatus } from '../../entities/enums/attempt-status.enum';
 
@@ -33,6 +34,8 @@ export class QuizAttemptsService {
     private readonly lectureRepository: Repository<Lecture>,
     @InjectRepository(Course)
     private readonly courseRepository: Repository<Course>,
+    @InjectRepository(Enrollment)
+    private readonly enrollmentRepository: Repository<Enrollment>,
   ) {}
 
   async startAttempt(quizId: string, userId: string): Promise<QuizAttempt> {
@@ -366,14 +369,16 @@ export class QuizAttemptsService {
   /**
    * Get attempt details for admin/instructor
    */
-  async getAttemptDetailsForAdmin(
-    attemptId: string,
-    userId: string,
-    userRole: string,
-  ) {
+  async getAttemptDetailsForAdmin(attemptId: string, userId: string, userRole: string) {
     const attempt = await this.attemptRepository.findOne({
       where: { id: attemptId },
-      relations: ['quiz', 'user', 'userAnswers', 'userAnswers.question', 'userAnswers.selectedOption'],
+      relations: [
+        'quiz',
+        'user',
+        'userAnswers',
+        'userAnswers.question',
+        'userAnswers.selectedOption',
+      ],
     });
 
     if (!attempt) {
@@ -393,8 +398,7 @@ export class QuizAttemptsService {
       }
 
       const isCreator = quiz.creatorId === userId;
-      const isCourseOwner =
-        quiz.lecture?.chapter?.course?.createdBy === userId;
+      const isCourseOwner = quiz.lecture?.chapter?.course?.createdBy === userId;
 
       if (!isCreator && !isCourseOwner) {
         throw new ForbiddenException('You do not have permission to view this attempt');
@@ -458,6 +462,276 @@ export class QuizAttemptsService {
         description: quiz.description,
       },
       questions: questionsWithAnswers,
+    };
+  }
+
+  /**
+   * Check if user has passed all quizzes for a lecture
+   * Returns true if:
+   * - Lecture has no quizzes
+   * - Lecture has quizzes and user has passed all of them with required score
+   */
+  async checkLectureQuizCompletion(
+    lectureId: string,
+    userId: string,
+  ): Promise<{
+    passed: boolean;
+    requiresQuiz: boolean;
+    quizzes: Array<{
+      id: string;
+      title: string;
+      passingScore: number;
+      bestAttempt: {
+        percentage: number;
+        passed: boolean;
+      } | null;
+    }>;
+  }> {
+    // Get lecture with quizzes
+    const lecture = await this.lectureRepository.findOne({
+      where: { id: lectureId },
+      relations: ['quizzes'],
+    });
+
+    if (!lecture) {
+      throw new NotFoundException(`Lecture with ID ${lectureId} not found`);
+    }
+
+    // If lecture doesn't require quiz or has no quizzes, return passed
+    if (!lecture.requiresQuiz || !lecture.quizzes || lecture.quizzes.length === 0) {
+      return {
+        passed: true,
+        requiresQuiz: false,
+        quizzes: [],
+      };
+    }
+
+    // Get all completed attempts for this user on lecture's quizzes
+    const quizIds = lecture.quizzes.map((q) => q.id);
+    const attempts = await this.attemptRepository
+      .createQueryBuilder('attempt')
+      .where('attempt.userId = :userId', { userId })
+      .andWhere('attempt.quizId IN (:...quizIds)', { quizIds })
+      .andWhere('attempt.status = :status', { status: AttemptStatus.COMPLETED })
+      .orderBy('attempt.percentage', 'DESC')
+      .getMany();
+
+    // Group attempts by quizId and get best attempt for each
+    const bestAttemptsByQuiz = new Map<string, QuizAttempt>();
+    for (const attempt of attempts) {
+      const existing = bestAttemptsByQuiz.get(attempt.quizId);
+      if (!existing || attempt.percentage > existing.percentage) {
+        bestAttemptsByQuiz.set(attempt.quizId, attempt);
+      }
+    }
+
+    // Check if all quizzes are passed
+    const quizResults = lecture.quizzes.map((quiz) => {
+      const bestAttempt = bestAttemptsByQuiz.get(quiz.id);
+      const passingScore = quiz.passingScore || 100;
+      const passed = bestAttempt ? bestAttempt.percentage >= passingScore : false;
+
+      return {
+        id: quiz.id,
+        title: quiz.title,
+        passingScore,
+        bestAttempt: bestAttempt
+          ? {
+              percentage: Number(bestAttempt.percentage),
+              passed,
+            }
+          : null,
+      };
+    });
+
+    const allPassed = quizResults.every((q) => q.bestAttempt?.passed);
+
+    return {
+      passed: allPassed,
+      requiresQuiz: true,
+      quizzes: quizResults,
+    };
+  }
+
+  /**
+   * Get quiz status for a lecture (for student view)
+   */
+  async getLectureQuizStatus(
+    lectureId: string,
+    userId: string,
+  ): Promise<{
+    requiresQuiz: boolean;
+    quizzes: Array<{
+      id: string;
+      title: string;
+      description?: string;
+      questionCount: number;
+      timeLimit?: number;
+      passingScore: number;
+      attempts: Array<{
+        id: string;
+        percentage: number;
+        passed: boolean;
+        completedAt: Date;
+      }>;
+      bestScore: number | null;
+      passed: boolean;
+    }>;
+    allPassed: boolean;
+  }> {
+    const lecture = await this.lectureRepository.findOne({
+      where: { id: lectureId },
+      relations: ['quizzes', 'quizzes.questions'],
+    });
+
+    if (!lecture) {
+      throw new NotFoundException(`Lecture with ID ${lectureId} not found`);
+    }
+
+    if (!lecture.requiresQuiz || !lecture.quizzes || lecture.quizzes.length === 0) {
+      return {
+        requiresQuiz: false,
+        quizzes: [],
+        allPassed: true,
+      };
+    }
+
+    const quizIds = lecture.quizzes.map((q) => q.id);
+    const attempts = await this.attemptRepository
+      .createQueryBuilder('attempt')
+      .where('attempt.userId = :userId', { userId })
+      .andWhere('attempt.quizId IN (:...quizIds)', { quizIds })
+      .andWhere('attempt.status = :status', { status: AttemptStatus.COMPLETED })
+      .orderBy('attempt.completedAt', 'DESC')
+      .getMany();
+
+    const attemptsByQuiz = new Map<string, QuizAttempt[]>();
+    for (const attempt of attempts) {
+      const existing = attemptsByQuiz.get(attempt.quizId) || [];
+      existing.push(attempt);
+      attemptsByQuiz.set(attempt.quizId, existing);
+    }
+
+    const quizResults = lecture.quizzes.map((quiz) => {
+      const quizAttempts = attemptsByQuiz.get(quiz.id) || [];
+      const passingScore = quiz.passingScore || 100;
+      const bestScore =
+        quizAttempts.length > 0 ? Math.max(...quizAttempts.map((a) => Number(a.percentage))) : null;
+      const passed = bestScore !== null && bestScore >= passingScore;
+
+      return {
+        id: quiz.id,
+        title: quiz.title,
+        description: quiz.description,
+        questionCount: quiz.questions?.length || 0,
+        timeLimit: quiz.timeLimit,
+        passingScore,
+        attempts: quizAttempts.map((a) => ({
+          id: a.id,
+          percentage: Number(a.percentage),
+          passed: Number(a.percentage) >= passingScore,
+          completedAt: a.completedAt,
+        })),
+        bestScore,
+        passed,
+      };
+    });
+
+    const allPassed = quizResults.every((q) => q.passed);
+
+    return {
+      requiresQuiz: true,
+      quizzes: quizResults,
+      allPassed,
+    };
+  }
+
+  /**
+   * Complete attempt and check if lecture should be marked as completed
+   */
+  async completeAttemptAndCheckLecture(
+    attemptId: string,
+    userId: string,
+    enrollmentId?: string,
+  ): Promise<{
+    attempt: QuizAttempt;
+    passed: boolean;
+    lectureCompleted: boolean;
+    message: string;
+  }> {
+    const attempt = await this.completeAttempt(attemptId, userId);
+
+    // Get quiz to find lecture
+    const quiz = await this.quizRepository.findOne({
+      where: { id: attempt.quizId },
+      relations: ['lecture'],
+    });
+
+    if (!quiz || !quiz.entityId || !quiz.lecture) {
+      return {
+        attempt,
+        passed: attempt.percentage >= 100,
+        lectureCompleted: false,
+        message: 'Quiz completed',
+      };
+    }
+
+    const passingScore = quiz.passingScore || 100;
+    const passed = attempt.percentage >= passingScore;
+
+    if (!passed) {
+      return {
+        attempt,
+        passed: false,
+        lectureCompleted: false,
+        message: `Bạn cần đạt ${passingScore}% để vượt qua bài kiểm tra. Điểm của bạn: ${attempt.percentage}%`,
+      };
+    }
+
+    // Check if all quizzes for this lecture are passed
+    const lectureCompletion = await this.checkLectureQuizCompletion(quiz.entityId, userId);
+
+    if (!lectureCompletion.passed) {
+      return {
+        attempt,
+        passed: true,
+        lectureCompleted: false,
+        message: 'Bạn đã vượt qua bài kiểm tra này. Hãy hoàn thành các bài kiểm tra còn lại.',
+      };
+    }
+
+    // All quizzes passed - mark lecture as completed if enrollmentId provided
+    let lectureCompleted = false;
+    if (enrollmentId) {
+      try {
+        const enrollment = await this.enrollmentRepository.findOne({
+          where: { id: enrollmentId },
+        });
+
+        if (enrollment) {
+          const finishedLectures = enrollment.attributes?.finishedLectures || [];
+          if (!finishedLectures.includes(quiz.entityId)) {
+            finishedLectures.push(quiz.entityId);
+            enrollment.attributes = {
+              ...enrollment.attributes,
+              finishedLectures,
+            };
+            await this.enrollmentRepository.save(enrollment);
+            lectureCompleted = true;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to update enrollment:', error);
+      }
+    }
+
+    return {
+      attempt,
+      passed: true,
+      lectureCompleted,
+      message: lectureCompleted
+        ? '🎉 Chúc mừng! Bạn đã hoàn thành bài học này!'
+        : 'Bạn đã vượt qua tất cả bài kiểm tra!',
     };
   }
 }

@@ -48,6 +48,9 @@ export class Quiz {
   @Column({ type: 'int', default: 0, name: 'share_count' })
   shareCount: number;
 
+  @Column({ type: 'int', default: 100, name: 'passing_score', comment: 'Minimum percentage score required to pass the quiz' })
+  passingScore: number;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 
