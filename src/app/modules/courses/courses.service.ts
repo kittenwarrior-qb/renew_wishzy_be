@@ -324,12 +324,20 @@ export class CoursesService {
     userId: string,
     chaptersPerCourse: number = 5,
     lecturesPerChapter: number = 5,
-  ): Promise<{ created: number; chapters: number; lectures: number; quizzes: number; stats: any }> {
+  ): Promise<{
+    created: number;
+    chapters: number;
+    lectures: number;
+    quizzes: number;
+    documents: number;
+    stats: any;
+  }> {
     const {
       CourseTestDataGenerator,
       ChapterTestDataGenerator,
       LectureTestDataGenerator,
       QuizTestDataGenerator,
+      DocumentTestDataGenerator,
     } = await import('./courses.create-test');
 
     const categoryIds = await this.courseRepository.manager.query(
@@ -345,6 +353,7 @@ export class CoursesService {
     let totalChapters = 0;
     let totalLectures = 0;
     let totalQuizzes = 0;
+    let totalDocuments = 0;
     const courseStats: any[] = [];
 
     for (let i = 0; i < quantity; i++) {
@@ -364,7 +373,21 @@ export class CoursesService {
         numberOfStudents: 0,
       });
 
-      // 2. Save chapters using chaptersPerCourse parameter
+      // 2. Save course documents
+      const courseDocuments = DocumentTestDataGenerator.generateCourseDocuments(
+        course.id,
+        userId,
+        course.name,
+      );
+      for (const docData of courseDocuments) {
+        await this.courseRepository.manager.getRepository('Document').save({
+          ...docData,
+          entityId: course.id,
+        });
+        totalDocuments++;
+      }
+
+      // 3. Save chapters using chaptersPerCourse parameter
       const savedChapters: any[] = [];
       const chapters = ChapterTestDataGenerator.generateChapters(
         course.id,
@@ -377,10 +400,24 @@ export class CoursesService {
           courseId: course.id,
         });
         savedChapters.push(chapter);
+
+        // Save chapter documents
+        const chapterDocuments = DocumentTestDataGenerator.generateChapterDocuments(
+          chapter.id,
+          userId,
+          chapter.name,
+        );
+        for (const docData of chapterDocuments) {
+          await this.courseRepository.manager.getRepository('Document').save({
+            ...docData,
+            entityId: chapter.id,
+          });
+          totalDocuments++;
+        }
       }
       totalChapters += savedChapters.length;
 
-      // 3. Save lectures using lecturesPerChapter parameter and track which need quizzes
+      // 4. Save lectures using lecturesPerChapter parameter and track which need quizzes
       const lecturesNeedingQuiz: Array<{
         id: string;
         name: string;
@@ -405,6 +442,23 @@ export class CoursesService {
             chapterId: chapter.id,
           });
 
+          // Save lecture documents (only for non-quiz lectures)
+          if (!lectureData.requiresQuiz) {
+            const lectureDocuments = DocumentTestDataGenerator.generateLectureDocuments(
+              lecture.id,
+              userId,
+              lecture.name,
+              'theory', // Default type for legacy method
+            );
+            for (const docData of lectureDocuments) {
+              await this.courseRepository.manager.getRepository('Document').save({
+                ...docData,
+                entityId: lecture.id,
+              });
+              totalDocuments++;
+            }
+          }
+
           if (lectureData.requiresQuiz) {
             // Final chapter quiz has 5 questions, others have 3
             const isFinalChapter = chapterIndex === savedChapters.length - 1;
@@ -420,7 +474,7 @@ export class CoursesService {
         }
       }
 
-      // 4. Save quizzes
+      // 5. Save quizzes
       for (const lectureInfo of lecturesNeedingQuiz) {
         const quizData = QuizTestDataGenerator.generateQuizForLecture(
           lectureInfo.id,
@@ -459,6 +513,7 @@ export class CoursesService {
         chapters: savedChapters.length,
         lectures: savedChapters.length * lecturesPerChapter,
         quizzes: lecturesNeedingQuiz.length,
+        documents: courseDocuments.length,
       });
     }
 
@@ -467,6 +522,7 @@ export class CoursesService {
       chapters: totalChapters,
       lectures: totalLectures,
       quizzes: totalQuizzes,
+      documents: totalDocuments,
       stats: courseStats,
     };
   }

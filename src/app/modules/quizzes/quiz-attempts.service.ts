@@ -3,6 +3,8 @@ import {
   NotFoundException,
   BadRequestException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,10 +14,10 @@ import { Quiz } from '../../entities/quiz.entity';
 import { Question } from '../../entities/question.entity';
 import { AnswerOption } from '../../entities/answer-option.entity';
 import { Lecture } from '../../entities/lecture.entity';
-import { Course } from '../../entities/course.entity';
 import { Enrollment } from '../../entities/enrollment.entity';
 import { SubmitAnswerDto } from './dto/submit-answer.dto';
 import { AttemptStatus } from '../../entities/enums/attempt-status.enum';
+import { EnrollmentsService } from '../enrollments/enrollments.service';
 
 @Injectable()
 export class QuizAttemptsService {
@@ -32,10 +34,10 @@ export class QuizAttemptsService {
     private readonly answerOptionRepository: Repository<AnswerOption>,
     @InjectRepository(Lecture)
     private readonly lectureRepository: Repository<Lecture>,
-    @InjectRepository(Course)
-    private readonly courseRepository: Repository<Course>,
     @InjectRepository(Enrollment)
     private readonly enrollmentRepository: Repository<Enrollment>,
+    @Inject(forwardRef(() => EnrollmentsService))
+    private readonly enrollmentsService: EnrollmentsService,
   ) {}
 
   async startAttempt(quizId: string, userId: string): Promise<QuizAttempt> {
@@ -664,10 +666,10 @@ export class QuizAttemptsService {
     // Get quiz to find lecture
     const quiz = await this.quizRepository.findOne({
       where: { id: attempt.quizId },
-      relations: ['lecture'],
     });
 
-    if (!quiz || !quiz.entityId || !quiz.lecture) {
+    // Only need entityId (lectureId), not the full lecture relation
+    if (!quiz || !quiz.entityId) {
       return {
         attempt,
         passed: attempt.percentage >= 100,
@@ -676,6 +678,7 @@ export class QuizAttemptsService {
       };
     }
 
+    const lectureId = quiz.entityId;
     const passingScore = quiz.passingScore || 100;
     const passed = attempt.percentage >= passingScore;
 
@@ -689,7 +692,7 @@ export class QuizAttemptsService {
     }
 
     // Check if all quizzes for this lecture are passed
-    const lectureCompletion = await this.checkLectureQuizCompletion(quiz.entityId, userId);
+    const lectureCompletion = await this.checkLectureQuizCompletion(lectureId, userId);
 
     if (!lectureCompletion.passed) {
       return {
@@ -710,13 +713,15 @@ export class QuizAttemptsService {
 
         if (enrollment) {
           const finishedLectures = enrollment.attributes?.finishedLectures || [];
-          if (!finishedLectures.includes(quiz.entityId)) {
-            finishedLectures.push(quiz.entityId);
-            enrollment.attributes = {
-              ...enrollment.attributes,
+          if (!finishedLectures.includes(lectureId)) {
+            finishedLectures.push(lectureId);
+            // Use patchAttributes to properly calculate progress
+            await this.enrollmentsService.patchAttributes(enrollmentId, {
               finishedLectures,
-            };
-            await this.enrollmentRepository.save(enrollment);
+            });
+            lectureCompleted = true;
+          } else {
+            // Already completed
             lectureCompleted = true;
           }
         }

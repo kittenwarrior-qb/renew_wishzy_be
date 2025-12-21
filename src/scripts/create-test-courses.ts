@@ -53,13 +53,14 @@ async function createTestCourses(quantity: number = 5) {
     console.log(`📖 Chapters: ${result.data?.chapters}`);
     console.log(`🎬 Lectures: ${result.data?.lectures}`);
     console.log(`📝 Quizzes: ${result.data?.quizzes}`);
+    console.log(`📄 Documents: ${result.data?.documents || 0}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     if (result.data?.stats) {
       console.log('\n📊 Course Details:');
       result.data.stats.forEach((course: any, index: number) => {
         console.log(`  ${index + 1}. ${course.name}`);
-        console.log(`     - ${course.chapters} chapters, ${course.lectures} lectures, ${course.quizzes} quizzes`);
+        console.log(`     - ${course.chapters} chapters, ${course.lectures} lectures, ${course.quizzes} quizzes, ${course.documents || 0} docs`);
       });
     }
   } catch (error: any) {
