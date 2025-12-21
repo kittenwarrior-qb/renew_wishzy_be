@@ -23,8 +23,11 @@ export class RevenueDataPointDto {
   @ApiProperty({ description: 'Ngày kết thúc của khoảng thời gian', example: '2024-11-09', required: false })
   endDate?: string;
 
-  @ApiProperty({ description: 'Tổng doanh thu trong khoảng thời gian', example: 50000000 })
+  @ApiProperty({ description: 'Doanh thu thực nhận (net revenue for admin, instructor revenue for instructor)', example: 50000000 })
   revenue!: number;
+
+  @ApiProperty({ description: 'Doanh thu gộp trước khi chia (gross revenue, chỉ có khi là admin)', example: 150000000, required: false })
+  grossRevenue?: number;
 
   @ApiProperty({ description: 'Số lượng đơn hàng', example: 25 })
   orderCount!: number;

@@ -374,8 +374,95 @@ export class StatService {
 
     // Get instructor revenue percentage for calculating shares
     const instructorPercentage = await this.systemSettingsService.getInstructorRevenuePercentage();
-    const systemRevenue = Math.round(totalRevenue * (100 - instructorPercentage) / 100);
-    const instructorRevenue = Math.round(totalRevenue * instructorPercentage / 100);
+    
+    let finalData: RevenueDataPointDto[];
+    let systemRevenue: number;
+    let instructorRevenue: number;
+    
+    if (isAdmin) {
+     // For admin, we need to calculate net revenue per period
+      // Query instructor course revenue BY PERIOD
+      let instructorByPeriodQuery = this.orderDetailRepository
+        .createQueryBuilder('orderDetail')
+        .innerJoin('orderDetail.order', 'order')
+        .innerJoin('orderDetail.course', 'course')
+        .innerJoin('course.creator', 'creator')
+        .select(groupBy, 'period')
+        .addSelect('COALESCE(SUM(orderDetail.price), 0)', 'instructorRevenue')
+        .where('order.status = :status', { status: OrderStatus.COMPLETED })
+        .andWhere('creator.role = :instructorRole', { instructorRole: UserRole.INSTRUCTOR });
+      
+      if (startDate) {
+        instructorByPeriodQuery = instructorByPeriodQuery.andWhere('order.created_at >= :startDate', {
+          startDate: new Date(startDate),
+        });
+      }
+      if (endDate) {
+        instructorByPeriodQuery = instructorByPeriodQuery.andWhere('order.created_at <= :endDate', {
+          endDate: new Date(endDate),
+        });
+      }
+      
+      instructorByPeriodQuery = instructorByPeriodQuery.groupBy('period').orderBy('period', 'ASC');
+      const instructorByPeriod = await instructorByPeriodQuery.getRawMany();
+      
+      // Query admin course revenue BY PERIOD
+      let adminByPeriodQuery = this.orderDetailRepository
+        .createQueryBuilder('orderDetail')
+        .innerJoin('orderDetail.order', 'order')
+        .innerJoin('orderDetail.course', 'course')
+        .innerJoin('course.creator', 'creator')
+        .select(groupBy, 'period')
+        .addSelect('COALESCE(SUM(orderDetail.price), 0)', 'adminRevenue')
+        .where('order.status = :status', { status: OrderStatus.COMPLETED })
+        .andWhere('creator.role = :adminRole', { adminRole: UserRole.ADMIN });
+      
+      if (startDate) {
+        adminByPeriodQuery = adminByPeriodQuery.andWhere('order.created_at >= :startDate', {
+          startDate: new Date(startDate),
+        });
+      }
+      if (endDate) {
+        adminByPeriodQuery = adminByPeriodQuery.andWhere('order.created_at <= :endDate', {
+          endDate: new Date(endDate),
+        });
+      }
+      
+      adminByPeriodQuery = adminByPeriodQuery.groupBy('period').orderBy('period', 'ASC');
+      const adminByPeriod = await adminByPeriodQuery.getRawMany();
+      
+      // Create lookup maps
+      const instructorMap = new Map(instructorByPeriod.map(r => [r.period, parseFloat(r.instructorRevenue || '0')]));
+      const adminMap = new Map(adminByPeriod.map(r => [r.period, parseFloat(r.adminRevenue || '0')]));
+      
+      // Update data points with net revenue
+      finalData = data.map(dataPoint => {
+        const instructorRev = instructorMap.get(dataPoint.period) || 0;
+        const adminRev = adminMap.get(dataPoint.period) || 0;
+        const grossRev = dataPoint.revenue; // This is the total from rawData
+        
+        // Calculate admin net revenue for this period
+        const adminShare = Math.round(instructorRev * (100 - instructorPercentage) / 100) + Math.round(adminRev);
+        
+        return {
+          ...dataPoint,
+          revenue: adminShare, // Net revenue for admin
+          grossRevenue: grossRev, // Keep gross for reference
+        };
+      });
+      
+      // Calculate totals
+      const totalInstructorRev = Array.from(instructorMap.values()).reduce((sum, val) => sum + val, 0);
+      const totalAdminRev = Array.from(adminMap.values()).reduce((sum, val) => sum + val, 0);
+      
+      systemRevenue = Math.round(totalInstructorRev * (100 - instructorPercentage) / 100) + Math.round(totalAdminRev);
+      instructorRevenue = Math.round(totalInstructorRev * instructorPercentage / 100);
+    } else {
+      // For instructor, simple percentage split
+      systemRevenue = Math.round(totalRevenue * (100 - instructorPercentage) / 100);
+      instructorRevenue = Math.round(totalRevenue * instructorPercentage / 100);
+      finalData = data; // No need to modify for instructor
+    }
 
     return {
       mode,
@@ -386,11 +473,11 @@ export class StatService {
       totalStudents,
       totalCourses,
       averageRevenuePerCourse: Math.round(averageRevenuePerCourse),
-      growthRate: Math.round(growthRate * 10) / 10, // Round to 1 decimal place
+      growthRate: Math.round(growthRate * 10) / 10,
       instructorPercentage,
       systemRevenue,
       instructorRevenue,
-      details: data,
+      details: finalData,
       startDate,
       endDate,
     };
