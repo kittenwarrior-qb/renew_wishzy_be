@@ -49,17 +49,26 @@ export class StatController {
   }
 
   @Get('revenue')
+  @Roles(UserRole.INSTRUCTOR)
   @ApiOperation({ 
-    summary: 'Tổng hợp doanh thu',
-    description: 'Thống kê doanh thu từ các đơn hàng đã thanh toán, hỗ trợ group theo ngày, tuần, tháng, năm'
+    summary: 'Tổng hợp doanh thu của giảng viên',
+    description: 'Thống kê doanh thu từ các khóa học của giảng viên hiện tại, hỗ trợ group theo ngày, tuần, tháng, năm'
   })
   @ApiResponse({ 
     status: 200, 
     description: 'Lấy thống kê doanh thu thành công',
     type: RevenueResponseDto
   })
-  async getRevenue(@Query() query: RevenueQueryDto): Promise<RevenueResponseDto> {
-    return this.statService.getRevenue(query);
+  @ApiResponse({ 
+    status: 401, 
+    description: 'Unauthorized - Token không hợp lệ'
+  })
+  @ApiResponse({ 
+    status: 403, 
+    description: 'Forbidden - Chỉ dành cho giảng viên'
+  })
+  async getRevenue(@Query() query: RevenueQueryDto, @CurrentUser() user: User): Promise<RevenueResponseDto> {
+    return this.statService.getRevenue(query, user.id);
   }
 
   @Get('instructor')
