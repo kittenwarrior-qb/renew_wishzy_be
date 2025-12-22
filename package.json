@@ -48,7 +48,8 @@
     "sync:migrations": "ts-node src/scripts/sync-migrations.ts",
     "create:test-users": "ts-node src/scripts/create-test-users.ts",
     "seed:instructor": "ts-node src/scripts/run-instructor-seeds.ts",
-    "seed:documents": "ts-node src/scripts/run-documents-seeds.ts"
+    "seed:documents": "ts-node src/scripts/run-documents-seeds.ts",
+    "update:quiz-flags": "node src/scripts/update-quiz-flags.js"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
