@@ -7,6 +7,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User, UserRole } from 'src/app/entities/user.entity';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('vouchers')
 @ApiTags('Vouchers')
@@ -60,10 +61,19 @@ export class VouchersController {
     };
   }
 
+  @Post('available')
+  @Public()
+  async getAvailableVouchers(@Body() body: { courseIds: string[] }) {
+    const courseIds = body?.courseIds || [];
+    const vouchers = await this.vouchersService.getAvailableVouchers(courseIds);
+    return {
+      message: 'Available vouchers retrieved successfully',
+      data: vouchers,
+    };
+  }
+
   @Post('validate')
-  async validateVoucher(
-    @Body() body: { code: string; orderTotal: number; courseIds: string[] },
-  ) {
+  async validateVoucher(@Body() body: { code: string; orderTotal: number; courseIds: string[] }) {
     const result = await this.vouchersService.validateVoucherCode(
       body.code,
       body.orderTotal,

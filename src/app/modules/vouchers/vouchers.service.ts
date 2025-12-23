@@ -127,6 +127,45 @@ export class VouchersService {
     return await this.voucherRepository.findOne({ where: { code } });
   }
 
+  /**
+   * Get available vouchers for given courses
+   * Returns vouchers that can be applied to the order
+   */
+  async getAvailableVouchers(courseIds: string[]): Promise<Voucher[]> {
+    const now = new Date();
+
+    const queryBuilder = this.voucherRepository.createQueryBuilder('voucher');
+
+    queryBuilder
+      .where('voucher.is_active = :isActive', { isActive: true })
+      .andWhere('voucher.start_date <= :now', { now })
+      .andWhere('voucher.end_date >= :now', { now });
+
+    // Filter by apply scope
+    if (courseIds.length > 0) {
+      queryBuilder.andWhere(
+        `(
+          voucher.apply_scope = :scopeAll
+          OR (voucher.apply_scope = :scopeCourse AND voucher.course_id IN (:...courseIds))
+        )`,
+        {
+          scopeAll: ApplyScope.ALL,
+          scopeCourse: ApplyScope.COURSE,
+          courseIds,
+        },
+      );
+    } else {
+      // If no courses, only return ALL scope vouchers
+      queryBuilder.andWhere('voucher.apply_scope = :scopeAll', {
+        scopeAll: ApplyScope.ALL,
+      });
+    }
+
+    queryBuilder.orderBy('voucher.discount_value', 'DESC');
+
+    return await queryBuilder.getMany();
+  }
+
   async validateVoucherCode(
     code: string,
     orderTotal: number,
@@ -134,9 +173,22 @@ export class VouchersService {
   ): Promise<{ valid: boolean; voucher?: Voucher; discount?: number; message?: string }> {
     const voucher = await this.findByCode(code.toUpperCase());
 
+    console.log('=== VALIDATE VOUCHER ===');
+    console.log('Code:', code);
+    console.log('Order Total:', orderTotal);
+    console.log('Course IDs:', courseIds);
+    console.log('Voucher found:', voucher ? 'Yes' : 'No');
+
     if (!voucher) {
       return { valid: false, message: 'Mã giảm giá không tồn tại' };
     }
+
+    console.log('Voucher details:', {
+      isActive: voucher.isActive,
+      minOrderAmount: voucher.minOrderAmount,
+      applyScope: voucher.applyScope,
+      courseId: voucher.courseId,
+    });
 
     if (!voucher.isActive) {
       return { valid: false, message: 'Mã giảm giá đã bị vô hiệu hóa' };
@@ -152,15 +204,23 @@ export class VouchersService {
     }
 
     if (voucher.minOrderAmount && orderTotal < Number(voucher.minOrderAmount)) {
+      console.log('Failed: minOrderAmount check', {
+        required: Number(voucher.minOrderAmount),
+        actual: orderTotal,
+      });
       return {
         valid: false,
-        message: `Đơn hàng tối thiểu ${voucher.minOrderAmount.toLocaleString('vi-VN')}đ để áp dụng mã này`,
+        message: `Đơn hàng tối thiểu ${Number(voucher.minOrderAmount).toLocaleString('vi-VN')}đ để áp dụng mã này`,
       };
     }
 
     // Check apply scope
     if (voucher.applyScope === ApplyScope.COURSE && voucher.courseId) {
       if (!courseIds.includes(voucher.courseId)) {
+        console.log('Failed: course scope check', {
+          voucherCourseId: voucher.courseId,
+          orderCourseIds: courseIds,
+        });
         return { valid: false, message: 'Mã giảm giá không áp dụng cho các khóa học này' };
       }
     }
@@ -178,6 +238,8 @@ export class VouchersService {
 
     // Ensure discount doesn't exceed order total
     discount = Math.min(discount, orderTotal);
+
+    console.log('Validation passed! Discount:', discount);
 
     return {
       valid: true,
