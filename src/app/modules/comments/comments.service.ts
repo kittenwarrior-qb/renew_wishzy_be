@@ -171,17 +171,16 @@ export class CommentsService {
     const queryBuilder = this.commentRepository
       .createQueryBuilder('comment')
       .leftJoinAndSelect('comment.user', 'user')
-      .leftJoin('comment.lecture', 'lecture')
-      .leftJoin('chapters', 'chapter', 'chapter.id = lecture.chapter_id')
-      .leftJoin('courses', 'course', 'course.id = chapter.course_id')
-      .addSelect(['lecture.id', 'lecture.name', 'course.id', 'course.name'])
+      .leftJoinAndSelect('comment.lecture', 'lecture')
+      .leftJoinAndSelect('lecture.chapter', 'chapter')
+      .leftJoinAndSelect('chapter.course', 'course')
       .andWhere('comment.parentId IS NULL'); // Only top-level comments
 
     // If user is ADMIN, show all comments. If INSTRUCTOR, only show their courses' comments
     if (userRole === UserRole.ADMIN) {
       // No additional filtering for admin - they see all comments
     } else {
-      queryBuilder.andWhere('course.created_by = :userId', { userId });
+      queryBuilder.andWhere('course.createdBy = :userId', { userId });
     }
 
     if (lectureId) {
@@ -204,6 +203,10 @@ export class CommentsService {
         return {
           ...comment,
           repliesCount: replies.length,
+          // Map course and lecture info from joins
+          courseName: comment.lecture?.chapter?.course?.name || 'Unknown Course',
+          lectureTitle: comment.lecture?.name || 'Unknown Lecture',
+          studentName: comment.user?.fullName || 'Unknown Student',
         };
       }),
     );
