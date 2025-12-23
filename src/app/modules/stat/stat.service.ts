@@ -318,9 +318,11 @@ export class StatService {
     // Format data với thông tin chi tiết hơn
     const data: RevenueDataPointDto[] = rawData.map((item) => {
       const period = item.period;
+      const grossRevenue = parseFloat(item.revenue || '0'); // This is gross from database
       const dataPoint: RevenueDataPointDto = {
         period,
-        revenue: parseFloat(item.revenue || '0'),
+        revenue: grossRevenue, // Keep gross for now, will be modified later if needed
+        grossRevenue: grossRevenue, // Always keep gross revenue
         orderCount: parseInt(item.orderCount || '0'),
         courseSoldCount: 0, // Sẽ được tính riêng nếu cần
       };
@@ -458,10 +460,15 @@ export class StatService {
       systemRevenue = Math.round(totalInstructorRev * (100 - instructorPercentage) / 100) + Math.round(totalAdminRev);
       instructorRevenue = Math.round(totalInstructorRev * instructorPercentage / 100);
     } else {
-      // For instructor, simple percentage split
+      // For instructor, calculate net revenue for each data point
       systemRevenue = Math.round(totalRevenue * (100 - instructorPercentage) / 100);
       instructorRevenue = Math.round(totalRevenue * instructorPercentage / 100);
-      finalData = data; // No need to modify for instructor
+      
+      // Update data points to show net revenue for instructor
+      finalData = data.map(dataPoint => ({
+        ...dataPoint,
+        revenue: Math.round((dataPoint.grossRevenue || dataPoint.revenue) * instructorPercentage / 100), // Net revenue for instructor
+      }));
     }
 
     return {
