@@ -22,27 +22,28 @@ export class StatController {
 
   @Get('dashboard-summary')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Lấy thống kê tổng quan cho dashboard',
-    description: 'Trả về số học viên, giảng viên, khóa học và đơn hàng hôm nay'
+    description: 'Trả về số học viên, giảng viên, khóa học và đơn hàng hôm nay',
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Lấy thống kê thành công'
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy thống kê thành công',
   })
   async getDashboardSummary() {
     return this.statService.getDashboardSummary();
   }
 
   @Get('hot-courses')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Lấy danh sách khóa học hot nhất',
-    description: 'Thống kê các khóa học phổ biến nhất dựa trên số lượng lượt mua (enrollments), bao gồm cả thông tin doanh thu'
+    description:
+      'Thống kê các khóa học phổ biến nhất dựa trên số lượng lượt mua (enrollments), bao gồm cả thông tin doanh thu',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Lấy danh sách khóa học hot thành công',
-    type: HotCoursesResponseDto
+    type: HotCoursesResponseDto,
   })
   async getHotCourses(@Query() query: HotCoursesQueryDto): Promise<HotCoursesResponseDto> {
     return this.statService.getHotCourses(query);
@@ -50,24 +51,28 @@ export class StatController {
 
   @Get('revenue')
   @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Tổng hợp doanh thu',
-    description: 'Admin: doanh thu hệ thống (% hoa hồng từ tất cả orders). Instructor: doanh thu từ các khóa học của mình.'
+    description:
+      'Admin: doanh thu hệ thống (% hoa hồng từ tất cả orders). Instructor: doanh thu từ các khóa học của mình.',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Lấy thống kê doanh thu thành công',
-    type: RevenueResponseDto
+    type: RevenueResponseDto,
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Unauthorized - Token không hợp lệ'
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token không hợp lệ',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Forbidden - Chỉ dành cho Admin hoặc Giảng viên'
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Chỉ dành cho Admin hoặc Giảng viên',
   })
-  async getRevenue(@Query() query: RevenueQueryDto, @CurrentUser() user: User): Promise<RevenueResponseDto> {
+  async getRevenue(
+    @Query() query: RevenueQueryDto,
+    @CurrentUser() user: User,
+  ): Promise<RevenueResponseDto> {
     // Admin: xem doanh thu toàn hệ thống (không filter theo instructorId)
     // Instructor: chỉ xem doanh thu của mình
     const instructorId = user.role === UserRole.ADMIN ? undefined : user.id;
@@ -76,22 +81,23 @@ export class StatController {
 
   @Get('instructor')
   @Roles(UserRole.INSTRUCTOR)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Thống kê dashboard cho giảng viên',
-    description: 'Lấy thống kê tổng quan cho giảng viên hiện tại: học viên, khóa học, doanh thu, và câu hỏi/bình luận gần đây'
+    description:
+      'Lấy thống kê tổng quan cho giảng viên hiện tại: học viên, khóa học, doanh thu, và câu hỏi/bình luận gần đây',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Lấy thống kê giảng viên thành công',
-    type: InstructorStatsResponseDto
+    type: InstructorStatsResponseDto,
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Unauthorized - Token không hợp lệ'
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token không hợp lệ',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Forbidden - Chỉ dành cho giảng viên'
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Chỉ dành cho giảng viên',
   })
   async getInstructorStats(@CurrentUser() user: User): Promise<InstructorStatsResponseDto> {
     return this.statService.getInstructorStats(user.id);
@@ -99,22 +105,23 @@ export class StatController {
 
   @Get('top-students')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Lấy danh sách học viên hàng đầu',
-    description: 'Thống kê các học viên theo chi tiêu hoặc số khóa học đã đăng ký (chỉ dành cho Admin)'
+    description:
+      'Thống kê các học viên theo chi tiêu hoặc số khóa học đã đăng ký (chỉ dành cho Admin)',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Lấy danh sách học viên hàng đầu thành công',
-    type: TopStudentsResponseDto
+    type: TopStudentsResponseDto,
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Unauthorized - Token không hợp lệ'
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token không hợp lệ',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Forbidden - Chỉ dành cho Admin'
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Chỉ dành cho Admin',
   })
   async getTopStudents(@Query() query: TopStudentsQueryDto): Promise<TopStudentsResponseDto> {
     return this.statService.getTopStudents(query);
@@ -122,40 +129,42 @@ export class StatController {
 
   @Get('top-instructors')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Lấy danh sách giảng viên hàng đầu',
-    description: 'Thống kê các giảng viên theo rating, số học viên, hoặc số khóa học (chỉ dành cho Admin)'
+    description:
+      'Thống kê các giảng viên theo rating, số học viên, hoặc số khóa học (chỉ dành cho Admin)',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Lấy danh sách giảng viên hàng đầu thành công',
-    type: TopInstructorsResponseDto
+    type: TopInstructorsResponseDto,
   })
-  @ApiResponse({ 
-    status: 401, 
-    description: 'Unauthorized - Token không hợp lệ'
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Token không hợp lệ',
   })
-  @ApiResponse({ 
-    status: 403, 
-    description: 'Forbidden - Chỉ dành cho Admin'
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Chỉ dành cho Admin',
   })
-  async getTopInstructors(@Query() query: TopInstructorsQueryDto): Promise<TopInstructorsResponseDto> {
+  async getTopInstructors(
+    @Query() query: TopInstructorsQueryDto,
+  ): Promise<TopInstructorsResponseDto> {
     return this.statService.getTopInstructors(query);
   }
 
   @Get('top-courses-by-revenue')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Lấy danh sách khóa học theo doanh thu',
-    description: 'Thống kê các khóa học theo tổng doanh thu, bao gồm số học viên đang theo học (chỉ dành cho Admin)'
+    description:
+      'Thống kê các khóa học theo tổng doanh thu, bao gồm số học viên đang theo học (chỉ dành cho Admin)',
   })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Lấy danh sách khóa học theo doanh thu thành công'
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy danh sách khóa học theo doanh thu thành công',
   })
   async getTopCoursesByRevenue(@Query('limit') limit: number = 10) {
     return this.statService.getTopCoursesByRevenue(limit);
   }
-
 }
-
