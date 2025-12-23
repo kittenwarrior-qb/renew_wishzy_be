@@ -30,10 +30,10 @@ export class BunnyService {
   private getBestVideoUrl(videoId: string, availableResolutions?: string[]): string {
     const baseUrl = `https://${this.bunnyCdnHostname}/${videoId}`;
 
-    // If no resolutions info, default to trying 720p then fallback pattern
+    // If no resolutions info, default to 360p (lowest common resolution)
+    // This ensures the URL works even if video source was lower resolution
     if (!availableResolutions || availableResolutions.length === 0) {
-      // Return 720p as default, frontend should handle fallback
-      return `${baseUrl}/play_720p.mp4`;
+      return `${baseUrl}/play_360p.mp4`;
     }
 
     // Find the best available resolution
@@ -48,8 +48,8 @@ export class BunnyService {
       return `${baseUrl}/play_${availableResolutions[0]}.mp4`;
     }
 
-    // Ultimate fallback
-    return `${baseUrl}/play_720p.mp4`;
+    // Ultimate fallback to lowest resolution
+    return `${baseUrl}/play_360p.mp4`;
   }
 
   /**
@@ -67,9 +67,7 @@ export class BunnyService {
         sources[res] = `${baseUrl}/play_${res}.mp4`;
       }
     } else {
-      // Default sources if no info available
-      sources['720p'] = `${baseUrl}/play_720p.mp4`;
-      sources['480p'] = `${baseUrl}/play_480p.mp4`;
+      // Default to 360p if no info available (lowest common resolution)
       sources['360p'] = `${baseUrl}/play_360p.mp4`;
     }
 
