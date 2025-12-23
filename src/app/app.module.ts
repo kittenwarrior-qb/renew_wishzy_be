@@ -124,7 +124,7 @@ import { FaqsModule } from './modules/faqs/faqs.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
 
 /**
  * Conditionally import modules based on configuration

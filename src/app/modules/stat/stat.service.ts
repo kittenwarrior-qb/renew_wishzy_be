@@ -496,66 +496,66 @@ export class StatService {
    * @returns Thống kê học viên, khóa học, doanh thu, và câu hỏi
    */
   async getInstructorStats(instructorId: string): Promise<InstructorStatsResponseDto> {
-    // Tính tổng doanh thu
+    // Tính tổng doanh thu (không tính khóa học đã xóa)
     const revenueData = await this.orderDetailRepository.query(
       `
       SELECT SUM(od.price) as "totalRevenue"
       FROM detail_orders od
       INNER JOIN courses c ON c.id = od.course_id
       INNER JOIN orders o ON o.id = od.order_id
-      WHERE c.created_by = $1 AND o.status = $2
+      WHERE c.created_by = $1 AND o.status = $2 AND c.deleted_at IS NULL
       `,
       [instructorId, OrderStatus.COMPLETED],
     );
     const totalRevenue = parseFloat(revenueData[0]?.totalRevenue || '0');
 
-    // Đếm tổng số học viên
+    // Đếm tổng số học viên (không tính khóa học đã xóa)
     const studentData = await this.enrollmentRepository.query(
       `
       SELECT COUNT(DISTINCT e.user_id) as "totalStudents"
       FROM enrollments e
       INNER JOIN courses c ON c.id = e.course_id
-      WHERE c.created_by = $1
+      WHERE c.created_by = $1 AND c.deleted_at IS NULL
       `,
       [instructorId],
     );
     const totalStudents = parseInt(studentData[0]?.totalStudents || '0');
 
-    // Đếm tổng số khóa học
+    // Đếm tổng số khóa học (không tính đã xóa)
     const courseData = await this.courseRepository.query(
       `
       SELECT COUNT(c.id) as "totalCourses"
       FROM courses c
-      WHERE c.created_by = $1
+      WHERE c.created_by = $1 AND c.deleted_at IS NULL
       `,
       [instructorId],
     );
     const totalCourses = parseInt(courseData[0]?.totalCourses || '0');
 
-    // Đếm tổng số feedbacks
+    // Đếm tổng số feedbacks (không tính khóa học đã xóa)
     const feedbackData = await this.feedbackRepository.query(
       `
       SELECT COUNT(fb.id) as "totalFeedbacks"
       FROM feedbacks fb
       INNER JOIN courses c ON c.id = fb.course_id
-      WHERE c.created_by = $1
+      WHERE c.created_by = $1 AND c.deleted_at IS NULL
       `,
       [instructorId],
     );
     const totalFeedbacks = parseInt(feedbackData[0]?.totalFeedbacks || '0');
 
-    // Tính rating trung bình
+    // Tính rating trung bình (không tính khóa học đã xóa)
     const ratingData = await this.courseRepository.query(
       `
       SELECT AVG(c.average_rating) as "overallRating"
       FROM courses c
-      WHERE c.created_by = $1
+      WHERE c.created_by = $1 AND c.deleted_at IS NULL
       `,
       [instructorId],
     );
     const overallRating = parseFloat(ratingData[0]?.overallRating || '0');
 
-    // Lấy chi tiết từng khóa học
+    // Lấy chi tiết từng khóa học (không tính đã xóa)
     const coursesData = await this.courseRepository.query(
       `
       SELECT
@@ -569,13 +569,13 @@ export class StatService {
       LEFT JOIN chapters ch ON ch.course_id = c.id
       LEFT JOIN lectures l ON l.chapter_id = ch.id
       LEFT JOIN comments cm ON cm.lecture_id = l.id
-      WHERE c.created_by = $1
+      WHERE c.created_by = $1 AND c.deleted_at IS NULL
       GROUP BY c.id, c.name, c.average_rating
       `,
       [instructorId],
     );
 
-    // Tính revenue cho từng khóa học
+    // Tính revenue cho từng khóa học (không tính đã xóa)
     const courseRevenues = await this.orderDetailRepository.query(
       `
       SELECT 
@@ -584,7 +584,7 @@ export class StatService {
       FROM detail_orders od
       INNER JOIN courses c ON c.id = od.course_id
       INNER JOIN orders o ON o.id = od.order_id
-      WHERE c.created_by = $1 AND o.status = $2
+      WHERE c.created_by = $1 AND o.status = $2 AND c.deleted_at IS NULL
       GROUP BY c.id
       `,
       [instructorId, OrderStatus.COMPLETED],
@@ -611,7 +611,7 @@ export class StatService {
       };
     });
 
-    // Lấy feedbacks gần đây
+    // Lấy feedbacks gần đây (không tính khóa học đã xóa)
     const recentFeedbacksData = await this.feedbackRepository.query(
       `
       SELECT 
@@ -624,7 +624,7 @@ export class StatService {
       FROM feedbacks fb
       INNER JOIN courses c ON c.id = fb.course_id
       LEFT JOIN users u ON u.id = fb.user_id
-      WHERE c.created_by = $1
+      WHERE c.created_by = $1 AND c.deleted_at IS NULL
       ORDER BY fb.created_at DESC
       LIMIT 10
       `,
