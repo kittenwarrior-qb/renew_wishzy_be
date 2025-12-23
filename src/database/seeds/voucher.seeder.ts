@@ -12,10 +12,8 @@ export async function seedVouchers(dataSource: DataSource) {
   }
 
   // Get admin user for voucher creator
-  const admin = await dataSource.query(
-    "SELECT id FROM users WHERE role = 'admin' LIMIT 1",
-  );
-  
+  const admin = await dataSource.query("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+
   if (admin.length === 0) {
     console.log('⚠️  Admin user not found. Please seed users first.');
     return;
@@ -304,4 +302,75 @@ export async function seedVouchers(dataSource: DataSource) {
   // Enums are validated at database level, so using 'as any' is safe here
   await voucherRepository.save(vouchers as any);
   console.log(`✅ Successfully seeded ${vouchers.length} vouchers!`);
+}
+
+/**
+ * Generate -100K voucher for all courses
+ * Each course gets a unique voucher code
+ */
+export async function seedCourseVouchers100K(dataSource: DataSource) {
+  const voucherRepository = dataSource.getRepository(Voucher);
+
+  // Get admin user for voucher creator
+  const admin = await dataSource.query("SELECT id FROM users WHERE role = 'admin' LIMIT 1");
+
+  if (admin.length === 0) {
+    console.log('⚠️  Admin user not found. Please seed users first.');
+    return;
+  }
+
+  const adminId = admin[0].id;
+
+  // Get all courses
+  const courses = await dataSource.query('SELECT id, name FROM courses');
+
+  if (courses.length === 0) {
+    console.log('⚠️  No courses found. Please seed courses first.');
+    return;
+  }
+
+  const now = new Date();
+  const futureDate = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000); // 1 year from now
+
+  let createdCount = 0;
+  let skippedCount = 0;
+
+  for (const course of courses) {
+    // Generate unique code based on course id (last 6 chars)
+    const shortId = course.id.replace(/-/g, '').slice(-6).toUpperCase();
+    const code = `GIAM100K_${shortId}`;
+
+    // Check if voucher already exists
+    const existing = await voucherRepository.findOne({ where: { code } });
+    if (existing) {
+      skippedCount++;
+      continue;
+    }
+
+    const voucher = voucherRepository.create({
+      code,
+      name: `Giảm 100K - ${course.name.slice(0, 50)}`,
+      discountValue: 100000,
+      discountType: DiscountType.FIXED,
+      maxDiscountAmount: null,
+      minOrderAmount: 0, // No minimum
+      perUserLimit: 1,
+      totalLimit: 100,
+      applyScope: ApplyScope.COURSE,
+      categoryId: null,
+      courseId: course.id,
+      isActive: true,
+      startDate: now,
+      endDate: futureDate,
+      userId: adminId,
+    });
+
+    await voucherRepository.save(voucher);
+    createdCount++;
+  }
+
+  console.log(`✅ Created ${createdCount} course vouchers (-100K)`);
+  if (skippedCount > 0) {
+    console.log(`⏭️  Skipped ${skippedCount} existing vouchers`);
+  }
 }
