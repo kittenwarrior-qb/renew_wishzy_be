@@ -83,6 +83,11 @@ export class ChaptersService {
         'lecture',
         'lecture.chapter_id = chapter.id AND lecture.deleted_at IS NULL',
       )
+      .leftJoin(
+        'quizzes',
+        'quiz',
+        'quiz.entity_id = lecture.id',
+      )
       .select(['chapter', 'course.id', 'course.name'])
       .addSelect('lecture.id', 'lecture_id')
       .addSelect('lecture.name', 'lecture_name')
@@ -91,6 +96,9 @@ export class ChaptersService {
       .addSelect('lecture.order_index', 'lecture_order_index')
       .addSelect('lecture.file_url', 'lecture_file_url')
       .addSelect('lecture.requires_quiz', 'lecture_requires_quiz')
+      .addSelect('quiz.id', 'quiz_id')
+      .addSelect('quiz.title', 'quiz_title')
+      .addSelect('quiz.creator_id', 'quiz_creator_id')
       .where('chapter.course_id = :courseId', { courseId })
       .getRawAndEntities();
 
@@ -98,16 +106,40 @@ export class ChaptersService {
       .map((chapter) => {
         const lecturesForChapter = chapters.raw
           .filter((raw) => raw.chapter_id === chapter.id && raw.lecture_id !== null)
-          .map((raw) => ({
-            id: raw.lecture_id,
-            name: raw.lecture_name,
-            duration: raw.lecture_duration,
-            isPreview: raw.lecture_is_preview,
-            orderIndex: raw.lecture_order_index,
-            requiresQuiz: raw.lecture_requires_quiz,
-            // Only return fileUrl for preview lectures (security)
-            fileUrl: raw.lecture_is_preview ? raw.lecture_file_url : undefined,
-          }))
+          .reduce((acc, raw) => {
+            const existingLecture = acc.find(l => l.id === raw.lecture_id);
+            
+            if (existingLecture) {
+              // Add quiz to existing lecture if not already added
+              if (raw.quiz_id && !existingLecture.quizzes.some(q => q.id === raw.quiz_id)) {
+                existingLecture.quizzes.push({
+                  id: raw.quiz_id,
+                  title: raw.quiz_title,
+                  creatorId: raw.quiz_creator_id,
+                });
+              }
+            } else {
+              // Create new lecture with quiz if exists
+              const lecture = {
+                id: raw.lecture_id,
+                name: raw.lecture_name,
+                duration: raw.lecture_duration,
+                isPreview: raw.lecture_is_preview,
+                orderIndex: raw.lecture_order_index,
+                requiresQuiz: raw.lecture_requires_quiz,
+                // Only return fileUrl for preview lectures (security)
+                fileUrl: raw.lecture_is_preview ? raw.lecture_file_url : undefined,
+                quizzes: raw.quiz_id ? [{
+                  id: raw.quiz_id,
+                  title: raw.quiz_title,
+                  creatorId: raw.quiz_creator_id,
+                }] : [],
+              };
+              acc.push(lecture);
+            }
+            
+            return acc;
+          }, [] as any[])
           .sort((a, b) => a.orderIndex - b.orderIndex); // Sort lectures by orderIndex ASC
 
         return {
@@ -188,6 +220,11 @@ export class ChaptersService {
         'lecture',
         'lecture.chapter_id = chapter.id AND lecture.deleted_at IS NULL',
       )
+      .leftJoin(
+        'quizzes',
+        'quiz',
+        'quiz.entity_id = lecture.id',
+      )
       .select(['chapter', 'course.id', 'course.name'])
       .addSelect('lecture.id', 'lecture_id')
       .addSelect('lecture.name', 'lecture_name')
@@ -196,6 +233,9 @@ export class ChaptersService {
       .addSelect('lecture.order_index', 'lecture_order_index')
       .addSelect('lecture.file_url', 'lecture_file_url')
       .addSelect('lecture.requires_quiz', 'lecture_requires_quiz')
+      .addSelect('quiz.id', 'quiz_id')
+      .addSelect('quiz.title', 'quiz_title')
+      .addSelect('quiz.creator_id', 'quiz_creator_id')
       .where('chapter.course_id = :courseId', { courseId })
       .getRawAndEntities();
 
@@ -203,16 +243,40 @@ export class ChaptersService {
       .map((chapter) => {
         const lecturesForChapter = chapters.raw
           .filter((raw) => raw.chapter_id === chapter.id && raw.lecture_id !== null)
-          .map((raw) => ({
-            id: raw.lecture_id,
-            name: raw.lecture_name,
-            duration: raw.lecture_duration,
-            isPreview: raw.lecture_is_preview,
-            orderIndex: raw.lecture_order_index,
-            requiresQuiz: raw.lecture_requires_quiz,
-            // Return fileUrl for enrolled users (they have access to all videos)
-            fileUrl: raw.lecture_file_url,
-          }))
+          .reduce((acc, raw) => {
+            const existingLecture = acc.find(l => l.id === raw.lecture_id);
+            
+            if (existingLecture) {
+              // Add quiz to existing lecture if not already added
+              if (raw.quiz_id && !existingLecture.quizzes.some(q => q.id === raw.quiz_id)) {
+                existingLecture.quizzes.push({
+                  id: raw.quiz_id,
+                  title: raw.quiz_title,
+                  creatorId: raw.quiz_creator_id,
+                });
+              }
+            } else {
+              // Create new lecture with quiz if exists
+              const lecture = {
+                id: raw.lecture_id,
+                name: raw.lecture_name,
+                duration: raw.lecture_duration,
+                isPreview: raw.lecture_is_preview,
+                orderIndex: raw.lecture_order_index,
+                requiresQuiz: raw.lecture_requires_quiz,
+                // Return fileUrl for enrolled users (they have access to all videos)
+                fileUrl: raw.lecture_file_url,
+                quizzes: raw.quiz_id ? [{
+                  id: raw.quiz_id,
+                  title: raw.quiz_title,
+                  creatorId: raw.quiz_creator_id,
+                }] : [],
+              };
+              acc.push(lecture);
+            }
+            
+            return acc;
+          }, [] as any[])
           .sort((a, b) => a.orderIndex - b.orderIndex);
 
         return {

@@ -79,6 +79,14 @@ export class QuizzesService {
       }
     }
 
+    // If quiz is associated with a lecture, update lecture's requiresQuiz field
+    if (savedQuiz.entityId) {
+      await this.lectureRepository.update(
+        { id: savedQuiz.entityId },
+        { requiresQuiz: true }
+      );
+    }
+
     return this.findOne(savedQuiz.id);
   }
 
@@ -277,7 +285,25 @@ export class QuizzesService {
       throw new ForbiddenException('You do not have permission to delete this quiz');
     }
 
+    // Store entityId before deletion to check if we need to update lecture
+    const entityId = quiz.entityId;
+
     await this.quizRepository.remove(quiz);
+
+    // If quiz was associated with a lecture, check if there are any remaining quizzes
+    if (entityId) {
+      const remainingQuizzes = await this.quizRepository.count({
+        where: { entityId }
+      });
+
+      // If no more quizzes for this lecture, set requiresQuiz to false
+      if (remainingQuizzes === 0) {
+        await this.lectureRepository.update(
+          { id: entityId },
+          { requiresQuiz: false }
+        );
+      }
+    }
   }
 
   async checkOwnership(quizId: string, userId: string): Promise<boolean> {
